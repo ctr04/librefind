@@ -8,11 +8,11 @@ plugins {
 
 
 android {
-    namespace = "com.jksalcedo.fossia"
+    namespace = "com.jksalcedo.librefind"
     compileSdk = 36
 
     defaultConfig {
-        applicationId = "com.jksalcedo.fossia"
+        applicationId = "com.jksalcedo.librefind"
         minSdk = 24
         targetSdk = 36
         versionCode = 1

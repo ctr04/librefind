@@ -12,8 +12,8 @@
 ## 📁 Project Structure
 
 ```
-app/src/main/java/com/jksalcedo/fossia/
-├── FossiaApp.kt                          # Hilt Application Entry Point
+app/src/main/java/com/jksalcedo/LibreFind/
+├── LibreFindApp.kt                          # Hilt Application Entry Point
 ├── MainActivity.kt                        # Single Activity (Compose)
 │
 ├── domain/                                # 🧠 Business Logic (Pure Kotlin)
@@ -152,7 +152,7 @@ Step C: Cloud Database Query
 
 ### 1. Firebase Setup (Required to Run)
 
-Follow the guide in [FIREBASE_SETUP.md](file:///home/arch-jk/AndroidStudioProjects/Fossia/FIREBASE_SETUP.md):
+Follow the guide in [FIREBASE_SETUP.md](file:///home/arch-jk/AndroidStudioProjects/LibreFind/FIREBASE_SETUP.md):
 
 1. Create Firebase project
 2. Download `google-services.json`
@@ -180,8 +180,8 @@ Add more proprietary apps and FOSS alternatives to Firebase Firestore.
 
 ## 📚 Documentation Created
 
-1. [README.md](file:///home/arch-jk/AndroidStudioProjects/Fossia/README.md) - Project overview & setup
-2. [FIREBASE_SETUP.md](file:///home/arch-jk/AndroidStudioProjects/Fossia/FIREBASE_SETUP.md) - Step-by-step Firebase guide
+1. [README.md](file:///home/arch-jk/AndroidStudioProjects/LibreFind/README.md) - Project overview & setup
+2. [FIREBASE_SETUP.md](file:///home/arch-jk/AndroidStudioProjects/LibreFind/FIREBASE_SETUP.md) - Step-by-step Firebase guide
 3. [walkthrough.md](file:///home/arch-jk/.gemini/antigravity/brain/7a1aa491-6b91-418a-9fba-3029eaf7663f/walkthrough.md) - Detailed implementation walkthrough
 4. [implementation_plan.md](file:///home/arch-jk/.gemini/antigravity/brain/7a1aa491-6b91-418a-9fba-3029eaf7663f/implementation_plan.md) - Architecture & design decisions
 5. [task.md](file:///home/arch-jk/.gemini/antigravity/brain/7a1aa491-6b91-418a-9fba-3029eaf7663f/task.md) - Task checklist
