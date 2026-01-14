@@ -1,12 +1,12 @@
-# Firebase Setup Guide for Fossia
+# Firebase Setup Guide for LibreFind
 
-This guide walks you through setting up Firebase for Fossia.
+This guide walks you through setting up Firebase for LibreFind.
 
 ## Step 1: Create Firebase Project
 
 1. Go to [Firebase Console](https://console.firebase.google.com)
 2. Click **"Add project"**
-3. Enter project name: **"Fossia"**
+3. Enter project name: **"LibreFind"**
 4. (Optional) Enable Google Analytics
 5. Click **"Create project"**
 
@@ -16,8 +16,8 @@ This guide walks you through setting up Firebase for Fossia.
 
 1. In the Firebase Console, click the **Android icon** to add an Android app
 2. Enter the following details:
-   - **Android package name**: `com.jksalcedo.fossia`
-   - **App nickname** (optional): "Fossia Android"
+   - **Android package name**: `com.jksalcedo.librefind`
+   - **App nickname** (optional): "LibreFind Android"
    - **Debug signing certificate SHA-1** (optional for now)
 
 3. Click **"Register app"**
@@ -226,7 +226,7 @@ service cloud.firestore {
    ```
 
 4. **Test Firestore connection**:
-   - Open Fossia app
+   - Open LibreFind app
    - Tap refresh on dashboard
    - Check if proprietary apps are detected
    - Tap on a proprietary app to see alternatives
@@ -251,7 +251,7 @@ service cloud.firestore {
 
 ### Permission denied errors
 - Grant `QUERY_ALL_PACKAGES` permission manually:
-  - Settings → Apps → Special access → All files access → Enable for Fossia
+  - Settings → Apps → Special access → All files access → Enable for LibreFind
 
 ---
 
