@@ -1,0 +1,83 @@
+package com.jksalcedo.librefind.di
+
+import com.google.firebase.Firebase
+import com.google.firebase.auth.auth
+import com.google.firebase.firestore.firestore
+import com.google.gson.GsonBuilder
+import com.jksalcedo.librefind.data.local.InventorySource
+import com.jksalcedo.librefind.data.local.SafeSignatureDb
+import com.jksalcedo.librefind.data.remote.firebase.AuthService
+import com.jksalcedo.librefind.data.remote.firebase.FirestoreService
+import com.jksalcedo.librefind.data.repository.DeviceInventoryRepoImpl
+import com.jksalcedo.librefind.data.repository.KnowledgeGraphRepoImpl
+import com.jksalcedo.librefind.domain.repository.DeviceInventoryRepo
+import com.jksalcedo.librefind.domain.repository.KnowledgeGraphRepo
+import com.jksalcedo.librefind.domain.usecase.GetAlternativeUseCase
+import com.jksalcedo.librefind.domain.usecase.ScanInventoryUseCase
+import com.jksalcedo.librefind.ui.auth.AuthViewModel
+import com.jksalcedo.librefind.ui.dashboard.DashboardViewModel
+import com.jksalcedo.librefind.ui.details.AlternativeDetailViewModel
+import com.jksalcedo.librefind.ui.details.DetailsViewModel
+import com.jksalcedo.librefind.ui.submit.SubmitViewModel
+import kotlinx.coroutines.Dispatchers
+import okhttp3.OkHttpClient
+import okhttp3.logging.HttpLoggingInterceptor
+import org.koin.android.ext.koin.androidContext
+import org.koin.androidx.viewmodel.dsl.viewModel
+import org.koin.dsl.module
+import java.util.concurrent.TimeUnit
+
+val appModule = module {
+    single { Dispatchers.IO }
+    single { Dispatchers.Main }
+    single { Dispatchers.Default }
+
+    single { InventorySource(androidContext()) }
+    single { SafeSignatureDb() }
+}
+
+val networkModule = module {
+    single {
+        GsonBuilder()
+            .setLenient()
+            .create()
+    }
+
+    single {
+        val loggingInterceptor = HttpLoggingInterceptor().apply {
+            level = HttpLoggingInterceptor.Level.BODY
+        }
+        OkHttpClient.Builder()
+            .addInterceptor(loggingInterceptor)
+            .connectTimeout(30L, TimeUnit.SECONDS)
+            .readTimeout(30L, TimeUnit.SECONDS)
+            .writeTimeout(30L, TimeUnit.SECONDS)
+            .build()
+    }
+
+    single { Firebase.firestore }
+    single { Firebase.auth }
+
+    single { AuthService(get()) }
+    single { FirestoreService(get()) }
+}
+
+val repositoryModule = module {
+    single<DeviceInventoryRepo> { DeviceInventoryRepoImpl(get(), get(), get()) }
+    single<KnowledgeGraphRepo> { KnowledgeGraphRepoImpl(get()) }
+}
+
+val useCaseModule = module {
+    single { GetAlternativeUseCase(get()) }
+    single { ScanInventoryUseCase(get()) }
+}
+
+val viewModelModule = module {
+    viewModel { DetailsViewModel(get(), get(), get()) }
+    viewModel { AlternativeDetailViewModel(get(), get()) }
+    viewModel { DashboardViewModel(get()) }
+    viewModel { AuthViewModel(get(), get()) }
+    viewModel { SubmitViewModel(get(), get()) }
+}
+
+
