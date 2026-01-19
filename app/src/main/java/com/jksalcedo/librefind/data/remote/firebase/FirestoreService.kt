@@ -92,7 +92,7 @@ class FirestoreService(
 
             val dto = doc.toObject(FossSolutionDto::class.java) ?: return null
             dto.toDomain(id)
-        } catch (e: Exception) {
+        } catch (_: Exception) {
             null
         }
     }
@@ -135,13 +135,11 @@ class FirestoreService(
      *
      * @param alternativeId Alternative to vote for
      * @param category "privacy" or "usability"
-     * @param userId User casting vote
      * @return True if successful
      */
     suspend fun voteForAlternative(
         alternativeId: String,
-        category: String,
-        userId: String
+        category: String
     ): Boolean {
         return try {
             val docRef = firestore.collection(COLLECTION_FOSS)
@@ -149,6 +147,7 @@ class FirestoreService(
 
             firestore.runTransaction { transaction ->
                 val snapshot = transaction.get(docRef)
+                @Suppress("UNCHECKED_CAST")
                 val votes = snapshot.get("votes") as? Map<String, Int> ?: emptyMap()
                 val currentVotes = votes[category] ?: 0
 
@@ -159,7 +158,7 @@ class FirestoreService(
             }.await()
 
             true
-        } catch (e: Exception) {
+        } catch (_: Exception) {
             false
         }
     }
@@ -213,8 +212,6 @@ class FirestoreService(
         }
     }
 
-    // ========== Submission Methods ==========
-
     suspend fun submitEntry(submission: Submission): Result<String> {
         return try {
             val dto = SubmissionDto.fromDomain(submission)
@@ -252,8 +249,6 @@ class FirestoreService(
         }
     }
 
-    // ========== Rating Methods ==========
-
     suspend fun rateAlternative(altId: String, uid: String, stars: Int): Boolean {
         return try {
             val ratingRef = firestore.collection(COLLECTION_FOSS)
@@ -289,10 +284,12 @@ class FirestoreService(
                     (total / currentCount) to currentCount
                 }
 
-                transaction.update(altRef, mapOf(
-                    "rating_avg" to newAvg,
-                    "rating_count" to newCount
-                ))
+                transaction.update(
+                    altRef, mapOf(
+                        "rating_avg" to newAvg,
+                        "rating_count" to newCount
+                    )
+                )
             }.await()
 
             true
@@ -316,8 +313,6 @@ class FirestoreService(
         }
     }
 
-    // ========== Feedback Methods ==========
-
     suspend fun submitFeedback(altId: String, feedback: Feedback): Result<String> {
         return try {
             val dto = FeedbackDto.fromDomain(feedback)
@@ -332,35 +327,71 @@ class FirestoreService(
         }
     }
 
-    suspend fun getApprovedFeedback(altId: String): List<Feedback> {
-        return try {
-            val query = firestore.collection(COLLECTION_FOSS)
-                .document(altId)
-                .collection("feedback")
-                .whereEqualTo("status", "APPROVED")
-                .get()
-                .await()
-            query.documents.mapNotNull { doc ->
-                doc.toObject(FeedbackDto::class.java)?.toDomain(doc.id)
-            }
-        } catch (_: Exception) {
-            emptyList()
-        }
-    }
 
-    suspend fun voteHelpful(altId: String, feedbackId: String): Boolean {
+    suspend fun checkDuplicateApp(name: String, packageName: String): DuplicateResult {
         return try {
-            firestore.collection(COLLECTION_FOSS)
-                .document(altId)
-                .collection("feedback")
-                .document(feedbackId)
-                .update("votes_helpful", FieldValue.increment(1))
-                .await()
-            true
-        } catch (_: Exception) {
-            false
+            val sanitizedPkg = sanitizePackageName(packageName)
+
+            // Check proprietary by package name
+            val propPkgDeferred = firestore.collection(COLLECTION_PROPRIETARY)
+                .document(sanitizedPkg)
+                .get()
+
+            // Check proprietary by name
+            val propNameDeferred = firestore.collection(COLLECTION_PROPRIETARY)
+                .whereEqualTo("name", name)
+                .limit(1)
+                .get()
+
+            // Check FOSS by package name
+            val fossPkgDeferred = firestore.collection(COLLECTION_FOSS)
+                .whereEqualTo("package_name", packageName)
+                .limit(1)
+                .get()
+
+            // Check FOSS by name
+            val fossNameDeferred = firestore.collection(COLLECTION_FOSS)
+                .whereEqualTo("name", name)
+                .limit(1)
+                .get()
+
+            val propPkg = propPkgDeferred.await()
+            if (propPkg.exists()) return DuplicateResult.ProprietaryMatch(
+                propPkg.getString("name") ?: name
+            )
+
+            val propName = propNameDeferred.await()
+            if (!propName.isEmpty) return DuplicateResult.ProprietaryMatch(
+                propName.documents[0].getString(
+                    "name"
+                ) ?: name
+            )
+
+            val fossPkg = fossPkgDeferred.await()
+            if (!fossPkg.isEmpty) return DuplicateResult.FossMatch(
+                fossPkg.documents[0].getString("name") ?: name
+            )
+
+            val fossName = fossNameDeferred.await()
+            if (!fossName.isEmpty) return DuplicateResult.FossMatch(
+                fossName.documents[0].getString(
+                    "name"
+                ) ?: name
+            )
+
+            DuplicateResult.NoMatch
+        } catch (e: Exception) {
+            android.util.Log.e("FIRESTORE", "Error checking duplicate: ${e.message}", e)
+            DuplicateResult.Error(e)
         }
     }
+}
+
+sealed class DuplicateResult {
+    object NoMatch : DuplicateResult()
+    data class ProprietaryMatch(val name: String) : DuplicateResult()
+    data class FossMatch(val name: String) : DuplicateResult()
+    data class Error(val exception: Exception) : DuplicateResult()
 }
 
 

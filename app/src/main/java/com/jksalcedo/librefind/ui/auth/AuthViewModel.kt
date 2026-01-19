@@ -38,8 +38,8 @@ class AuthViewModel(
                     val profile = firestoreService.getProfile(user.uid)
                     _uiState.value = _uiState.value.copy(
                         isSignedIn = true,
-                        needsProfileSetup = profile == null,
-                        profileComplete = profile != null,
+                        needsProfileSetup = profile == null || profile.username.isBlank(),
+                        profileComplete = profile != null && profile.username.isNotBlank(),
                         userProfile = profile
                     )
                 } else {
@@ -83,8 +83,8 @@ class AuthViewModel(
                     _uiState.value = _uiState.value.copy(
                         isLoading = false,
                         isSignedIn = true,
-                        needsProfileSetup = profile == null,
-                        profileComplete = profile != null,
+                        needsProfileSetup = profile == null || profile.username.isBlank(),
+                        profileComplete = profile != null && profile.username.isNotBlank(),
                         userProfile = profile
                     )
                 }

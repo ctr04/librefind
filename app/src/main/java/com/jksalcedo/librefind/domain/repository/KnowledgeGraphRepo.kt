@@ -1,7 +1,7 @@
 package com.jksalcedo.librefind.domain.repository
 
+import com.jksalcedo.librefind.data.remote.firebase.DuplicateResult
 import com.jksalcedo.librefind.domain.model.Alternative
-
 import com.jksalcedo.librefind.domain.model.Submission
 
 /**
@@ -65,4 +65,6 @@ interface KnowledgeGraphRepo {
      * @return List of Submission objects
      */
     suspend fun getMySubmissions(userId: String): List<Submission>
+
+    suspend fun checkDuplicateApp(name: String, packageName: String): DuplicateResult
 }

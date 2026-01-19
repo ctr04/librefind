@@ -135,17 +135,19 @@ fun SubmissionItem(submission: Submission) {
 fun StatusBadge(status: SubmissionStatus) {
     val (backgroundColor, contentColor, text) = when (status) {
         SubmissionStatus.PENDING -> Triple(
-            Color(0xFFFFF3E0),
+            MaterialTheme.colorScheme.surface,
             Color(0xFFE65100),
             "Pending"
         )
+
         SubmissionStatus.APPROVED -> Triple(
-            Color(0xFFE8F5E9),
+            MaterialTheme.colorScheme.surface,
             Color(0xFF2E7D32),
             "Approved"
         )
+
         SubmissionStatus.REJECTED -> Triple(
-            Color(0xFFFFEBEE),
+            MaterialTheme.colorScheme.surface,
             Color(0xFFC62828),
             "Rejected"
         )

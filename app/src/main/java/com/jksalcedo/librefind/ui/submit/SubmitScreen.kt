@@ -19,8 +19,10 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CircularProgressIndicator
@@ -75,9 +77,35 @@ fun SubmitScreen(
     var dropdownExpanded by remember { mutableStateOf(false) }
 
     LaunchedEffect(uiState.success) {
-        if (uiState.success) {
+        if (uiState.success && uiState.submittedAppName == null) {
             onSuccess()
         }
+    }
+
+    if (uiState.submittedAppName != null) {
+        AlertDialog(
+            onDismissRequest = { },
+            icon = {
+                Icon(
+                    imageVector = Icons.Default.CheckCircle,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(48.dp)
+                )
+            },
+            title = { Text("Submission Received!") },
+            text = {
+                Text("Thanks! Your submission for '${uiState.submittedAppName}' has been received.")
+            },
+            confirmButton = {
+                Button(
+                    onClick = onSuccess
+                ) {
+                    Text("Done")
+                }
+            },
+            properties = DialogProperties(dismissOnBackPress = false, dismissOnClickOutside = false)
+        )
     }
 
     Scaffold(
@@ -120,9 +148,21 @@ fun SubmitScreen(
 
             HorizontalDivider()
 
+            uiState.duplicateWarning?.let { warning ->
+                Text(
+                    text = warning,
+                    color = MaterialTheme.colorScheme.error,
+                    style = MaterialTheme.typography.bodyMedium,
+                    modifier = Modifier.padding(vertical = 4.dp)
+                )
+            }
+
             OutlinedTextField(
                 value = appName,
-                onValueChange = { appName = it },
+                onValueChange = {
+                    appName = it
+                    viewModel.checkDuplicate(it, packageName)
+                },
                 label = { Text("App Name *") },
                 singleLine = true,
                 modifier = Modifier.fillMaxWidth()
@@ -130,10 +170,20 @@ fun SubmitScreen(
 
             OutlinedTextField(
                 value = packageName,
-                onValueChange = { packageName = it },
+                onValueChange = {
+                    packageName = it
+                    viewModel.checkDuplicate(appName, it)
+                    viewModel.validatePackageName(it)
+                },
                 label = { Text("Package Name *") },
                 placeholder = { Text("com.example.app") },
                 singleLine = true,
+                isError = uiState.packageNameError != null,
+                supportingText = {
+                    uiState.packageNameError?.let { error ->
+                        Text(error, color = MaterialTheme.colorScheme.error)
+                    }
+                },
                 modifier = Modifier.fillMaxWidth()
             )
 
@@ -212,10 +262,19 @@ fun SubmitScreen(
 
                 OutlinedTextField(
                     value = repoUrl,
-                    onValueChange = { repoUrl = it },
+                    onValueChange = {
+                        repoUrl = it
+                        viewModel.validateRepoUrl(it)
+                    },
                     label = { Text("Repository URL") },
                     placeholder = { Text("https://github.com/...") },
                     singleLine = true,
+                    isError = uiState.repoUrlError != null,
+                    supportingText = {
+                        uiState.repoUrlError?.let { error ->
+                            Text(error, color = MaterialTheme.colorScheme.error)
+                        }
+                    },
                     modifier = Modifier.fillMaxWidth()
                 )
 
@@ -260,7 +319,12 @@ fun SubmitScreen(
                         proprietaryPackages = selectedProprietaryPackages.joinToString(", ")
                     )
                 },
-                enabled = appName.isNotBlank() && packageName.isNotBlank() && description.isNotBlank() && !uiState.isLoading,
+                enabled = appName.isNotBlank() &&
+                        packageName.isNotBlank() &&
+                        description.isNotBlank() &&
+                        !uiState.isLoading &&
+                        uiState.packageNameError == null &&
+                        uiState.repoUrlError == null,
                 modifier = Modifier.fillMaxWidth()
             ) {
                 if (uiState.isLoading) {

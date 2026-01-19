@@ -1,5 +1,6 @@
 package com.jksalcedo.librefind.data.repository
 
+import com.jksalcedo.librefind.data.remote.firebase.DuplicateResult
 import com.jksalcedo.librefind.data.remote.firebase.FirestoreService
 import com.jksalcedo.librefind.domain.model.Alternative
 import com.jksalcedo.librefind.domain.model.Submission
@@ -36,13 +37,16 @@ class KnowledgeGraphRepoImpl(
     ): Boolean {
         return firestoreService.voteForAlternative(
             alternativeId = alternativeId,
-            category = category,
-            userId = userId
+            category = category
         )
     }
 
     override suspend fun getMySubmissions(userId: String): List<Submission> {
         return firestoreService.getMySubmissions(userId)
+    }
+
+    override suspend fun checkDuplicateApp(name: String, packageName: String): DuplicateResult {
+        return firestoreService.checkDuplicateApp(name, packageName)
     }
 }
 
