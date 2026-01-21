@@ -3,7 +3,7 @@ plugins {
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.ksp)
-    alias(libs.plugins.google.services)
+    alias(libs.plugins.kotlin.serialization)
 }
 
 
@@ -15,8 +15,8 @@ android {
         applicationId = "com.jksalcedo.librefind"
         minSdk = 24
         targetSdk = 36
-        versionCode = 3
-        versionName = "1.0-beta3"
+        versionCode = 4
+        versionName = "1.0-beta4"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -91,10 +91,23 @@ dependencies {
     implementation(libs.okhttp.logging.interceptor)
     implementation(libs.gson)
 
-    // Firebase
-    implementation(platform(libs.firebase.bom))
-    implementation(libs.firebase.firestore)
-    implementation(libs.firebase.auth)
+    // Firebase (Removed)
+    // implementation(platform(libs.firebase.bom))
+    // implementation(libs.firebase.firestore)
+    // implementation(libs.firebase.auth)
+
+    // Supabase
+    implementation(platform(libs.supabase.bom))
+    implementation(libs.supabase.postgrest)
+    implementation(libs.supabase.auth)
+    // implementation(libs.supabase.serializer.kotlinx)
+
+    // Ktor
+    implementation(libs.ktor.client.android)
+    implementation(libs.ktor.client.core)
+    implementation(libs.ktor.client.cio)
+    implementation(libs.ktor.client.content.negotiation)
+    implementation(libs.ktor.serialization.kotlinx.json)
 
     // Navigation
     implementation(libs.navigation.compose)
