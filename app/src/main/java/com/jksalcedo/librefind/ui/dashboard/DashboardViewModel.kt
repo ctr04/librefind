@@ -29,6 +29,7 @@ class DashboardViewModel(
 
     private val refreshTrigger = MutableSharedFlow<Unit>(replay = 1)
     private val _searchQuery = MutableStateFlow("")
+    private val _statusFilter = MutableStateFlow<AppStatus?>(null)
 
     init {
         viewModelScope.launch {
@@ -40,8 +41,9 @@ class DashboardViewModel(
                         scanInventoryUseCase()
                     },
                 ignoredAppsRepository.getIgnoredPackageNames(),
-                _searchQuery
-            ) { apps, ignoredPackages, query ->
+                _searchQuery,
+                _statusFilter
+            ) { apps, ignoredPackages, query, statusFilter ->
                 val filtered = apps
                     .filter { it.packageName !in ignoredPackages }
                     .filter { app ->
@@ -49,15 +51,19 @@ class DashboardViewModel(
                         app.label.contains(query, ignoreCase = true) ||
                         app.packageName.contains(query, ignoreCase = true)
                     }
-                Triple(filtered, apps.filter { it.packageName !in ignoredPackages }, query)
-            }.collect { (filteredApps, allApps, query) ->
+                    .filter { app ->
+                        statusFilter == null || app.status == statusFilter
+                    }
+                Pair(filtered, apps.filter { it.packageName !in ignoredPackages })
+            }.collect { (filteredApps, allApps) ->
                 val score = calculateScore(allApps)
                 _state.update {
                     it.copy(
                         isLoading = false,
                         apps = filteredApps,
                         sovereigntyScore = score,
-                        searchQuery = query,
+                        searchQuery = _searchQuery.value,
+                        statusFilter = _statusFilter.value,
                         error = null
                     )
                 }
@@ -73,6 +79,10 @@ class DashboardViewModel(
 
     fun updateSearchQuery(query: String) {
         _searchQuery.value = query
+    }
+
+    fun setStatusFilter(status: AppStatus?) {
+        _statusFilter.value = status
     }
 
     fun ignoreApp(packageName: String) {
@@ -107,6 +117,7 @@ data class DashboardState(
     val apps: List<AppItem> = emptyList(),
     val sovereigntyScore: SovereigntyScore? = null,
     val searchQuery: String = "",
+    val statusFilter: AppStatus? = null,
     val error: String? = null
 )
 
