@@ -15,7 +15,8 @@ data class AuthUiState(
     val isSignedIn: Boolean = false,
     val needsProfileSetup: Boolean = false,
     val profileComplete: Boolean = false,
-    val userProfile: UserProfile? = null
+    val userProfile: UserProfile? = null,
+    val showCheckEmailDialog: Boolean = false
 )
 
 class AuthViewModel(
@@ -51,16 +52,25 @@ class AuthViewModel(
         }
     }
 
-    fun signUp(email: String, password: String) {
+    fun signUp(email: String, password: String, username: String) {
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isLoading = true, error = null)
-            authRepository.signUp(email, password)
+            authRepository.signUp(email, password, username)
                 .onSuccess {
-                    _uiState.value = _uiState.value.copy(
-                        isLoading = false,
-                        isSignedIn = true,
-                        needsProfileSetup = true
-                    )
+                    val currentUser = authRepository.getCurrentUser()
+
+                    if (currentUser == null) {
+                        _uiState.value = _uiState.value.copy(
+                            isLoading = false,
+                            showCheckEmailDialog = true
+                        )
+                    } else {
+                        _uiState.value = _uiState.value.copy(
+                            isLoading = false,
+                            isSignedIn = true,
+                            needsProfileSetup = true
+                        )
+                    }
                 }
                 .onFailure { e ->
                     _uiState.value = _uiState.value.copy(
@@ -68,7 +78,7 @@ class AuthViewModel(
                         error = e.message ?: "Sign up failed"
                     )
                 }
-            
+
         }
     }
 
@@ -115,6 +125,10 @@ class AuthViewModel(
 
     fun clearError() {
         _uiState.value = _uiState.value.copy(error = null)
+    }
+
+    fun dismissCheckEmailDialog() {
+        _uiState.value = _uiState.value.copy(showCheckEmailDialog = false)
     }
 
     fun signOut() {

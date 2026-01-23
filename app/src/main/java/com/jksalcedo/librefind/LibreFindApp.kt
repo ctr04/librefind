@@ -4,6 +4,7 @@ import android.app.Application
 import com.jksalcedo.librefind.di.appModule
 import com.jksalcedo.librefind.di.networkModule
 import com.jksalcedo.librefind.di.repositoryModule
+import com.jksalcedo.librefind.di.supabaseModule
 import com.jksalcedo.librefind.di.useCaseModule
 import com.jksalcedo.librefind.di.viewModelModule
 import org.koin.android.ext.koin.androidContext
@@ -17,7 +18,7 @@ class LibreFindApp : Application() {
         startKoin {
             androidLogger()
             androidContext(this@LibreFindApp)
-            modules(appModule, networkModule, repositoryModule, useCaseModule, viewModelModule)
+            modules(appModule, networkModule, repositoryModule, useCaseModule, viewModelModule, supabaseModule)
         }
     }
 }

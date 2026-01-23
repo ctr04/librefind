@@ -12,6 +12,7 @@ import com.jksalcedo.librefind.ui.dashboard.DashboardScreen
 import com.jksalcedo.librefind.ui.details.AlternativeDetailScreen
 import com.jksalcedo.librefind.ui.details.DetailsScreen
 import com.jksalcedo.librefind.ui.mysubmissions.MySubmissionsScreen
+import com.jksalcedo.librefind.ui.settings.IgnoredAppsScreen
 import com.jksalcedo.librefind.ui.submit.SubmitScreen
 
 @Composable
@@ -32,6 +33,9 @@ fun NavGraph(
                 },
                 onMySubmissionsClick = {
                     navController.navigate(Route.MySubmissions.route)
+                },
+                onIgnoredAppsClick = {
+                    navController.navigate(Route.IgnoredApps.route)
                 }
             )
         }
@@ -85,7 +89,7 @@ fun NavGraph(
         composable(Route.ProfileSetup.route) {
             ProfileSetupScreen(
                 onProfileComplete = {
-                    navController.navigate(Route.Submit.route) {
+                    navController.navigate(Route.Dashboard.route) {
                         popUpTo(Route.ProfileSetup.route) { inclusive = true }
                     }
                 }
@@ -105,6 +109,12 @@ fun NavGraph(
 
         composable(Route.MySubmissions.route) {
             MySubmissionsScreen(
+                onBackClick = { navController.navigateUp() }
+            )
+        }
+
+        composable(Route.IgnoredApps.route) {
+            IgnoredAppsScreen(
                 onBackClick = { navController.navigateUp() }
             )
         }

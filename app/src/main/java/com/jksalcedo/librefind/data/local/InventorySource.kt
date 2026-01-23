@@ -8,20 +8,18 @@ import android.os.Build
 
 /**
  * Local data source for device app inventory
- * 
+ *
  * Wraps Android PackageManager API to extract installed packages.
- * This is the "Eyes" of the detection system.
  */
 class InventorySource(
     private val context: Context
 ) {
     /**
      * Gets all user-installed apps
-     * 
+     *
      * Filters out pure system apps, but keeps:
      * - User-installed apps
-     * - Updated system apps (e.g., Gmail, Maps)
-     * 
+     *
      * @return List of PackageInfo for user apps
      */
     fun getRawApps(): List<PackageInfo> {
@@ -31,20 +29,20 @@ class InventorySource(
                 .filter { app ->
                     // Filter logic: User apps + Updated System Apps only
                     (app.applicationInfo?.flags?.and(ApplicationInfo.FLAG_SYSTEM) == 0) ||
-                    (app.applicationInfo?.flags?.and(ApplicationInfo.FLAG_UPDATED_SYSTEM_APP) != 0)
+                            (app.applicationInfo?.flags?.and(ApplicationInfo.FLAG_UPDATED_SYSTEM_APP) != 0)
                 }
-        } catch (e: Exception) {
+        } catch (_: Exception) {
             emptyList()
         }
     }
 
     /**
      * Gets the installer package name for a specific app
-     * 
+     *
      * Handles API level differences:
      * - Android R (API 30+): Uses getInstallSourceInfo
      * - Pre-R: Uses deprecated getInstallerPackageName
-     * 
+     *
      * @param packageName Package to query
      * @return Installer package name or null if unknown/error
      */
@@ -58,14 +56,14 @@ class InventorySource(
                 @Suppress("DEPRECATION")
                 context.packageManager.getInstallerPackageName(packageName)
             }
-        } catch (e: Exception) {
+        } catch (_: Exception) {
             null
         }
     }
 
     /**
      * Gets human-readable label for an app
-     * 
+     *
      * @param packageName Package to query
      * @return App label or package name if label unavailable
      */
@@ -73,7 +71,7 @@ class InventorySource(
         return try {
             val appInfo = context.packageManager.getApplicationInfo(packageName, 0)
             context.packageManager.getApplicationLabel(appInfo).toString()
-        } catch (e: Exception) {
+        } catch (_: Exception) {
             packageName
         }
     }

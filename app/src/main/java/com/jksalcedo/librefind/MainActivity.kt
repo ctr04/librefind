@@ -7,15 +7,19 @@ import androidx.activity.enableEdgeToEdge
 import androidx.navigation.compose.rememberNavController
 import com.jksalcedo.librefind.ui.navigation.NavGraph
 import com.jksalcedo.librefind.ui.theme.LibreFindTheme
+import io.github.jan.supabase.SupabaseClient
+import io.github.jan.supabase.auth.handleDeeplinks
+import org.koin.android.ext.android.inject
 
 
-/**
- * Main activity - entry point for Fossia app
- */
 class MainActivity : ComponentActivity() {
+
+    private val supabase: SupabaseClient by inject()
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
+        supabase.handleDeeplinks(intent)
         setContent {
             LibreFindTheme {
                 val navController = rememberNavController()

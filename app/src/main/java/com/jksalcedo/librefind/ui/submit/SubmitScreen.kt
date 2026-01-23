@@ -2,9 +2,9 @@ package com.jksalcedo.librefind.ui.submit
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.FlowRow
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
@@ -190,7 +190,7 @@ fun SubmitScreen(
             OutlinedTextField(
                 value = description,
                 onValueChange = { description = it },
-                label = { Text("Description *") },
+                label = { Text("Description (optional)") },
                 minLines = 3,
                 maxLines = 5,
                 modifier = Modifier.fillMaxWidth()
@@ -322,7 +322,6 @@ fun SubmitScreen(
                 },
                 enabled = appName.isNotBlank() &&
                         packageName.isNotBlank() &&
-                        description.isNotBlank() &&
                         !uiState.isLoading &&
                         uiState.packageNameError == null &&
                         uiState.repoUrlError == null,
@@ -353,6 +352,7 @@ fun MultiSelectDialog(
 ) {
     var tempSelection by remember { mutableStateOf(initialSelection) }
     var searchText by remember { mutableStateOf("") }
+    var showSheet by remember { mutableStateOf(false) }
 
     Dialog(
         onDismissRequest = onDismiss,
@@ -404,6 +404,16 @@ fun MultiSelectDialog(
                                 modifier = Modifier.padding(16.dp),
                                 style = MaterialTheme.typography.bodyMedium
                             )
+                            Spacer(modifier = Modifier.height(4.dp))
+                            Button(
+                                onClick = {},
+                            ) {
+                                Text(
+                                    "Suggest '$searchText' as a new target?",
+                                    modifier = Modifier.padding(16.dp),
+                                    style = MaterialTheme.typography.bodyMedium
+                                )
+                            }
                         }
                     }
 

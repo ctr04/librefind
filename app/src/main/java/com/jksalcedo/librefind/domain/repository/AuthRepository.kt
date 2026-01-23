@@ -1,0 +1,14 @@
+package com.jksalcedo.librefind.domain.repository
+
+import com.jksalcedo.librefind.domain.model.UserProfile
+import kotlinx.coroutines.flow.Flow
+
+interface AuthRepository {
+    val currentUser: Flow<UserProfile?>
+    
+    suspend fun signUp(email: String, password: String, username: String): Result<Unit>
+    suspend fun signIn(email: String, password: String): Result<Unit>
+    suspend fun signOut()
+    suspend fun getCurrentUser(): UserProfile?
+    suspend fun updateProfile(username: String): Result<Unit>
+}

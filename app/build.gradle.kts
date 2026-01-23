@@ -91,10 +91,7 @@ dependencies {
     implementation(libs.okhttp.logging.interceptor)
     implementation(libs.gson)
 
-    // Firebase (Removed)
-    // implementation(platform(libs.firebase.bom))
-    // implementation(libs.firebase.firestore)
-    // implementation(libs.firebase.auth)
+    implementation(libs.coil.compose)
 
     // Supabase
     implementation(platform(libs.supabase.bom))

@@ -1,5 +1,6 @@
 package com.jksalcedo.librefind.data.repository
 
+import android.util.Log
 import com.jksalcedo.librefind.data.remote.model.ProfileDto
 import com.jksalcedo.librefind.data.remote.model.SolutionDto
 import com.jksalcedo.librefind.data.remote.model.TargetDto
@@ -41,7 +42,7 @@ class SupabaseAppRepository(
 
     override suspend fun getAlternatives(packageName: String): List<Alternative> {
         return try {
-            // 1. Get the target to find alternative package names
+            //  Get the target to find alternative package names
             val target = supabase.postgrest.from("targets")
                 .select {
                     filter {
@@ -49,29 +50,76 @@ class SupabaseAppRepository(
                     }
                 }.decodeSingleOrNull<TargetDto>() ?: return emptyList()
 
-            if (target.alternatives.isEmpty()) return emptyList()
+            if (target.alternatives.orEmpty().isEmpty()) return emptyList()
 
-            // 2. Fetch the solutions
             val solutions = supabase.postgrest.from("solutions")
                 .select {
                     filter {
-                        isIn("package_name", target.alternatives)
+                        isIn("package_name", target.alternatives.orEmpty())
                     }
                 }.decodeList<SolutionDto>()
 
-            // 3. Map to Domain Model
             solutions.map { dto ->
+                val votesJson = dto.votes?.let { json ->
+                    try {
+                        json as? kotlinx.serialization.json.JsonObject
+                    } catch (e: Exception) {
+                        Log.e(
+                            "SupabaseAppRepo",
+                            "Failed to parse votes JSON for ${dto.packageName}",
+                            e
+                        )
+                        null
+                    }
+                }
+
+                val ratingAvg = votesJson?.get("average")?.let { avgElement ->
+                    try {
+                        when (avgElement) {
+                            is kotlinx.serialization.json.JsonPrimitive -> avgElement.content.toFloatOrNull()
+                            else -> null
+                        }
+                    } catch (e: Exception) {
+                        Log.e(
+                            "SupabaseAppRepo",
+                            "Failed to parse average for ${dto.packageName}",
+                            e
+                        )
+                        null
+                    }
+                } ?: 0.0f
+
+                val ratingCount = votesJson?.get("count")?.let { countElement ->
+                    try {
+                        when (countElement) {
+                            is kotlinx.serialization.json.JsonPrimitive -> countElement.content.toIntOrNull()
+                            else -> null
+                        }
+                    } catch (e: Exception) {
+                        Log.e("SupabaseAppRepo", "Failed to parse count for ${dto.packageName}", e)
+                        null
+                    }
+                } ?: 0
+
+                Log.d(
+                    "SupabaseAppRepo",
+                    "Parsed ratings for ${dto.packageName}: avg=$ratingAvg, count=$ratingCount, votesJson=$votesJson"
+                )
+
                 Alternative(
-                    id = dto.packageName, // Using package name as ID
+                    id = dto.packageName,
                     name = dto.name,
                     packageName = dto.packageName,
                     license = dto.license,
                     repoUrl = dto.repoUrl,
                     fdroidId = dto.fdroidId,
                     iconUrl = dto.iconUrl,
-                    ratingAvg = 0.0f, // Needs calculation from votes JSON
+                    ratingAvg = ratingAvg,
+                    ratingCount = ratingCount,
                     description = dto.description,
-                    features = dto.features
+                    features = dto.features.orEmpty(),
+                    pros = dto.pros.orEmpty(),
+                    cons = dto.cons.orEmpty()
                 )
             }
         } catch (e: Exception) {
@@ -89,6 +137,44 @@ class SupabaseAppRepository(
                     }
                 }.decodeSingleOrNull<SolutionDto>() ?: return null
 
+            val votesJson = dto.votes?.let { json ->
+                try {
+                    json as? kotlinx.serialization.json.JsonObject
+                } catch (e: Exception) {
+                    Log.e("SupabaseAppRepo", "Failed to parse votes JSON for ${dto.packageName}", e)
+                    null
+                }
+            }
+
+            val ratingAvg = votesJson?.get("average")?.let { avgElement ->
+                try {
+                    when (avgElement) {
+                        is kotlinx.serialization.json.JsonPrimitive -> avgElement.content.toFloatOrNull()
+                        else -> null
+                    }
+                } catch (e: Exception) {
+                    Log.e("SupabaseAppRepo", "Failed to parse average for ${dto.packageName}", e)
+                    null
+                }
+            } ?: 0.0f
+
+            val ratingCount = votesJson?.get("count")?.let { countElement ->
+                try {
+                    when (countElement) {
+                        is kotlinx.serialization.json.JsonPrimitive -> countElement.content.toIntOrNull()
+                        else -> null
+                    }
+                } catch (e: Exception) {
+                    Log.e("SupabaseAppRepo", "Failed to parse count for ${dto.packageName}", e)
+                    null
+                }
+            } ?: 0
+
+            Log.d(
+                "SupabaseAppRepo",
+                "Parsed ratings for ${dto.packageName}: avg=$ratingAvg, count=$ratingCount, votesJson=$votesJson"
+            )
+
             Alternative(
                 id = dto.packageName,
                 name = dto.name,
@@ -97,9 +183,12 @@ class SupabaseAppRepository(
                 repoUrl = dto.repoUrl,
                 fdroidId = dto.fdroidId,
                 iconUrl = dto.iconUrl,
-                ratingAvg = 0.0f,
+                ratingAvg = ratingAvg,
+                ratingCount = ratingCount,
                 description = dto.description,
-                features = dto.features
+                features = dto.features.orEmpty(),
+                pros = dto.pros.orEmpty(),
+                cons = dto.cons.orEmpty()
             )
         } catch (_: Exception) {
             null
@@ -124,16 +213,28 @@ class SupabaseAppRepository(
     override suspend fun submitAlternative(
         proprietaryPackage: String,
         alternativePackage: String,
+        appName: String,
+        description: String,
         userId: String
     ): Result<Unit> = runCatching {
-        val submission = UserSubmissionDto(
-            appName = "Unknown",
-            appPackage = alternativePackage,
-            description = "Suggested alternative",
-            proprietaryPackage = proprietaryPackage,
-            submitterId = userId
+        Log.d(
+            "SupabaseAppRepo",
+            "Submitting alternative: $appName ($alternativePackage) for $proprietaryPackage by $userId"
         )
-        supabase.postgrest.from("user_submissions").insert(submission)
+        try {
+            val submission = UserSubmissionDto(
+                appName = appName,
+                appPackage = alternativePackage,
+                description = description,
+                proprietaryPackage = proprietaryPackage.ifBlank { null },
+                submitterId = userId
+            )
+            supabase.postgrest.from("user_submissions").insert(submission)
+            Log.d("SupabaseAppRepo", "Submission successful")
+        } catch (e: Exception) {
+            Log.e("SupabaseAppRepo", "Submission failed", e)
+            throw e
+        }
     }
 
     override suspend fun castVote(
@@ -144,22 +245,44 @@ class SupabaseAppRepository(
         val userId =
             supabase.auth.currentUserOrNull()?.id ?: throw IllegalStateException("Not logged in")
 
-        // Insert into user_votes
         val vote = UserVoteDto(
             userId = userId,
             packageName = packageName,
             voteType = voteType,
             value = value
         )
-        supabase.postgrest.from("user_votes").insert(vote)
 
-        val params = mapOf(
-            "package_name" to packageName,
-            "vote_type" to voteType,
-            "value" to value
-        )
-        supabase.postgrest.rpc("vote_for_app", params)
+        Log.d("SupabaseAppRepo", "castVote: upserting vote")
+        try {
+            supabase.postgrest.from("user_votes").upsert(vote) {
+                onConflict = "user_id,package_name,vote_type"
+                defaultToNull = false
+            }
+            Log.d("SupabaseAppRepo", "castVote: upsert complete")
+        } catch (e: Exception) {
+            Log.e("SupabaseAppRepo", "castVote: upsert failed", e)
+            throw e
+        }
+
+        Log.d("SupabaseAppRepo", "castVote: calling RPC")
+        try {
+            supabase.postgrest.rpc(
+                "vote_for_app",
+                VoteForAppParams(packageName, voteType, value)
+            )
+            Log.d("SupabaseAppRepo", "castVote: RPC complete")
+        } catch (e: Exception) {
+            Log.e("SupabaseAppRepo", "castVote: RPC failed", e)
+            throw e
+        }
     }
+
+    @Serializable
+    private data class VoteForAppParams(
+        @SerialName("package_name") val packageName: String,
+        @SerialName("vote_type") val voteType: String,
+        val value: Int
+    )
 
     override suspend fun submitFeedback(
         packageName: String,
@@ -182,9 +305,8 @@ class SupabaseAppRepository(
 
     override suspend fun getMySubmissions(userId: String): List<Submission> {
         return try {
-            // Fetch submissions and join profiles to get username
             val result = supabase.postgrest.from("user_submissions")
-                .select(columns = Columns.list("*, profiles(username)")) {
+                .select(columns = Columns.list("*, profiles(id, username)")) {
                     filter {
                         eq("submitter_id", userId)
                     }
@@ -217,8 +339,23 @@ class SupabaseAppRepository(
         }
     }
 
+    override suspend fun getUserVote(packageName: String, userId: String): Int? {
+        return try {
+            supabase.postgrest.from("user_votes")
+                .select {
+                    filter {
+                        eq("user_id", userId)
+                        eq("package_name", packageName)
+                        eq("vote_type", "usability")
+                    }
+                }.decodeSingleOrNull<UserVoteDto>()?.value
+        } catch (e: Exception) {
+            e.printStackTrace()
+            null
+        }
+    }
+
     override suspend fun checkDuplicateApp(name: String, packageName: String): Boolean {
-        // Check if exists in solutions or targets
         val inSolutions = supabase.postgrest.from("solutions")
             .select { count(Count.EXACT); filter { eq("package_name", packageName) } }.countOrNull()
             ?: 0
