@@ -2,12 +2,9 @@ package com.jksalcedo.librefind.ui.submit
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.jksalcedo.librefind.data.remote.firebase.AuthService
-import com.jksalcedo.librefind.data.remote.firebase.DuplicateResult
-import com.jksalcedo.librefind.data.remote.firebase.FirestoreService
-import com.jksalcedo.librefind.domain.model.Submission
 import com.jksalcedo.librefind.domain.model.SubmissionType
-import com.jksalcedo.librefind.domain.model.SubmittedApp
+import com.jksalcedo.librefind.domain.repository.AppRepository
+import com.jksalcedo.librefind.domain.repository.AuthRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -25,8 +22,9 @@ data class SubmitUiState(
 )
 
 class SubmitViewModel(
-    private val authService: AuthService,
-    private val firestoreService: FirestoreService
+    private val authRepository: AuthRepository,
+    private val appRepository: AppRepository,
+    private val submitProposalUseCase: com.jksalcedo.librefind.domain.usecase.SubmitProposalUseCase
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(SubmitUiState())
@@ -38,7 +36,7 @@ class SubmitViewModel(
 
     private fun loadProprietaryTargets() {
         viewModelScope.launch {
-            val targets = firestoreService.getProprietaryTargets()
+            val targets = appRepository.getProprietaryTargets()
             _uiState.value = _uiState.value.copy(proprietaryTargets = targets)
         }
     }
@@ -56,53 +54,44 @@ class SubmitViewModel(
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isLoading = true, error = null)
 
-            val user = authService.getCurrentUser()
+            val user = authRepository.getCurrentUser()
             if (user == null) {
                 _uiState.value = _uiState.value.copy(isLoading = false, error = "Not signed in")
                 return@launch
             }
 
             if (_uiState.value.packageNameError != null || _uiState.value.repoUrlError != null) {
-                _uiState.value = _uiState.value.copy(isLoading = false, error = "Please fix validation errors")
+                _uiState.value =
+                    _uiState.value.copy(isLoading = false, error = "Please fix validation errors")
                 return@launch
             }
 
-            val profile = firestoreService.getProfile(user.uid)
-            if (profile == null) {
+            if (user.username.isBlank()) {
                 _uiState.value =
                     _uiState.value.copy(isLoading = false, error = "Profile not set up")
                 return@launch
             }
 
-            val submission = Submission(
-                type = type,
-                proprietaryPackages = proprietaryPackages,
-                submitterUid = user.uid,
-                submitterUsername = profile.username,
-                submittedApp = SubmittedApp(
-                    name = appName,
-                    packageName = packageName,
-                    repoUrl = repoUrl,
-                    fdroidId = fdroidId,
-                    description = description,
-                    license = license
-                )
+            val result = submitProposalUseCase(
+                proprietaryPackage = proprietaryPackages,
+                alternativeId = packageName,
+                appName = appName,
+                description = description,
+                userId = user.uid
             )
 
-            firestoreService.submitEntry(submission)
-                .onSuccess {
-                    _uiState.value = _uiState.value.copy(
-                        isLoading = false,
-                        success = true,
-                        submittedAppName = appName
-                    )
-                }
-                .onFailure { e ->
-                    _uiState.value = _uiState.value.copy(
-                        isLoading = false,
-                        error = e.message ?: "Submission failed"
-                    )
-                }
+            result.onSuccess {
+                _uiState.value = _uiState.value.copy(
+                    isLoading = false,
+                    success = true,
+                    submittedAppName = appName
+                )
+            }.onFailure { e ->
+                _uiState.value = _uiState.value.copy(
+                    isLoading = false,
+                    error = "Submission failed: ${e.message}"
+                )
+            }
         }
     }
 
@@ -121,18 +110,11 @@ class SubmitViewModel(
                 return@launch
             }
 
-            val result = firestoreService.checkDuplicateApp(name, packageName)
-            val warning = when (result) {
-                is DuplicateResult.ProprietaryMatch ->
-                    "This app is already in our database as a proprietary target: ${result.name}"
-
-                is DuplicateResult.FossMatch ->
-                    "This app is already in our database as a FOSS solution: ${result.name}"
-
-                is DuplicateResult.Error ->
-                    null // Ignore errors
-                DuplicateResult.NoMatch ->
-                    null
+            val isDuplicate = appRepository.checkDuplicateApp(name, packageName)
+            val warning = if (isDuplicate) {
+                "This app is already in our database."
+            } else {
+                null
             }
             _uiState.value = _uiState.value.copy(duplicateWarning = warning)
         }
@@ -147,7 +129,7 @@ class SubmitViewModel(
         // Ends with letter/number/underscore
         val regex = Regex("^[a-z][a-z0-9_]*(\\.[a-z0-9_]+)+[0-9a-z_]$")
         val isValid = regex.matches(packageName)
-        
+
         _uiState.value = _uiState.value.copy(
             packageNameError = if (isValid) null else "Invalid package name format (e.g. com.example.app)"
         )
@@ -158,7 +140,7 @@ class SubmitViewModel(
             _uiState.value = _uiState.value.copy(repoUrlError = null)
             return
         }
-        
+
         val isValid = url.startsWith("https://")
         _uiState.value = _uiState.value.copy(
             repoUrlError = if (isValid) null else "URL must start with https://"

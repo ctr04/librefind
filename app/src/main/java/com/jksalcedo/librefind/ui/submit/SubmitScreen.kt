@@ -2,6 +2,7 @@ package com.jksalcedo.librefind.ui.submit
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
@@ -74,7 +75,6 @@ fun SubmitScreen(
     var fdroidId by remember { mutableStateOf("") }
     var license by remember { mutableStateOf("") }
     var selectedProprietaryPackages by remember { mutableStateOf(setOf<String>()) }
-    var dropdownExpanded by remember { mutableStateOf(false) }
 
     LaunchedEffect(uiState.success) {
         if (uiState.success && uiState.submittedAppName == null) {
@@ -190,7 +190,7 @@ fun SubmitScreen(
             OutlinedTextField(
                 value = description,
                 onValueChange = { description = it },
-                label = { Text("Description *") },
+                label = { Text("Description (optional)") },
                 minLines = 3,
                 maxLines = 5,
                 modifier = Modifier.fillMaxWidth()
@@ -206,21 +206,22 @@ fun SubmitScreen(
 
                 var showDialog by remember { mutableStateOf(false) }
 
-                OutlinedTextField(
-                    value = if (selectedProprietaryPackages.isEmpty()) "" else "${selectedProprietaryPackages.size} selected",
-                    onValueChange = {},
-                    readOnly = true,
-                    label = { Text("Target Proprietary Apps") },
-                    placeholder = { Text("Search to add...") },
-                    trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = dropdownExpanded) },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clickable(
-                            interactionSource = null,
-                            indication = null,
-                            onClick = { showDialog = true }
-                        )
-                )
+                Box(modifier = Modifier.fillMaxWidth()) {
+                    OutlinedTextField(
+                        value = if (selectedProprietaryPackages.isEmpty()) "" else "${selectedProprietaryPackages.size} selected",
+                        onValueChange = {},
+                        readOnly = true,
+                        label = { Text("Target Proprietary Apps") },
+                        placeholder = { Text("Search to add...") },
+                        trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = showDialog) },
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    Box(
+                        modifier = Modifier
+                            .matchParentSize()
+                            .clickable { showDialog = true }
+                    )
+                }
 
                 if (selectedProprietaryPackages.isNotEmpty()) {
                     FlowRow(
@@ -321,7 +322,6 @@ fun SubmitScreen(
                 },
                 enabled = appName.isNotBlank() &&
                         packageName.isNotBlank() &&
-                        description.isNotBlank() &&
                         !uiState.isLoading &&
                         uiState.packageNameError == null &&
                         uiState.repoUrlError == null,
@@ -352,6 +352,7 @@ fun MultiSelectDialog(
 ) {
     var tempSelection by remember { mutableStateOf(initialSelection) }
     var searchText by remember { mutableStateOf("") }
+    var showSheet by remember { mutableStateOf(false) }
 
     Dialog(
         onDismissRequest = onDismiss,
@@ -403,6 +404,16 @@ fun MultiSelectDialog(
                                 modifier = Modifier.padding(16.dp),
                                 style = MaterialTheme.typography.bodyMedium
                             )
+                            Spacer(modifier = Modifier.height(4.dp))
+                            Button(
+                                onClick = {},
+                            ) {
+                                Text(
+                                    "Suggest '$searchText' as a new target?",
+                                    modifier = Modifier.padding(16.dp),
+                                    style = MaterialTheme.typography.bodyMedium
+                                )
+                            }
                         }
                     }
 

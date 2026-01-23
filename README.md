@@ -13,11 +13,9 @@
 
 LibreFind is a free and lightweight Android app that scans your device, identifies proprietary
 software, and recommends
-Free and Open Source Software (FOSS) alternatives. It uses **Firebase Firestore** data as its
+Free and Open Source Software (FOSS) alternatives. It uses **Supabase** data as its
 knowledge
 base for proprietary app detection and FOSS alternative recommendations.
-
-> Note: Firebase is used for MVP only.
 
 ### Core Mission
 

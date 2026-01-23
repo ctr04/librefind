@@ -2,11 +2,9 @@ package com.jksalcedo.librefind.ui.details
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.jksalcedo.librefind.data.remote.firebase.AuthService
-import com.jksalcedo.librefind.data.remote.firebase.FirestoreService
 import com.jksalcedo.librefind.domain.model.Alternative
-import com.jksalcedo.librefind.domain.model.Feedback
-import com.jksalcedo.librefind.domain.model.FeedbackType
+import com.jksalcedo.librefind.domain.repository.AppRepository
+import com.jksalcedo.librefind.domain.repository.AuthRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -14,8 +12,8 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
 class AlternativeDetailViewModel(
-    private val firestoreService: FirestoreService,
-    private val authService: AuthService
+    private val appRepository: AppRepository,
+    private val authRepository: AuthRepository
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(AlternativeDetailState())
@@ -27,54 +25,45 @@ class AlternativeDetailViewModel(
         currentAltId = altId
         viewModelScope.launch {
             _state.update { it.copy(isLoading = true) }
-            
-            val uid = authService.getCurrentUser()?.uid
-            val alternative = firestoreService.getAlternativeById(altId)
-            val userRating = if (uid != null && alternative != null) {
-                firestoreService.getUserRating(altId, uid)
-            } else null
-            
+
+            val user = authRepository.getCurrentUser()
+            val alternative = appRepository.getAlternative(altId)
+
+            val userRating: Int? = if (user != null) {
+                appRepository.getUserVote(altId, user.uid)
+            } else {
+                null
+            }
+
             _state.update {
                 it.copy(
                     isLoading = false,
                     alternative = alternative?.copy(userRating = userRating),
-                    isSignedIn = uid != null,
-                    username = if (uid != null) firestoreService.getProfile(uid)?.username else null
+                    isSignedIn = user != null,
+                    username = user?.username
                 )
             }
         }
     }
 
     fun rate(stars: Int) {
-        val uid = authService.getCurrentUser()?.uid ?: return
+        if (!_state.value.isSignedIn) return
+
+        _state.update { state ->
+            state.copy(
+                alternative = state.alternative?.copy(userRating = stars)
+            )
+        }
+
         viewModelScope.launch {
-            if (firestoreService.rateAlternative(currentAltId, uid, stars)) {
-                _state.update { state ->
-                    state.alternative?.let { alt ->
-                        val newCount = if (alt.userRating == null) alt.ratingCount + 1 else alt.ratingCount
-                        val oldRating = alt.userRating ?: 0
-                        val newAvg = if (newCount > 0) {
-                            (alt.ratingAvg * alt.ratingCount - oldRating + stars) / newCount
-                        } else stars.toFloat()
-                        state.copy(alternative = alt.copy(userRating = stars, ratingAvg = newAvg, ratingCount = newCount))
-                    } ?: state
-                }
-            }
+            appRepository.castVote(currentAltId, "usability", stars)
+            loadAlternative(currentAltId)
         }
     }
 
     fun submitFeedback(type: String, text: String) {
-        val uid = authService.getCurrentUser()?.uid ?: return
-        val username = _state.value.username ?: return
-        
         viewModelScope.launch {
-            val feedback = Feedback(
-                uid = uid,
-                username = username,
-                type = FeedbackType.valueOf(type),
-                text = text
-            )
-            firestoreService.submitFeedback(currentAltId, feedback)
+            appRepository.submitFeedback(currentAltId, type, text)
         }
     }
 }

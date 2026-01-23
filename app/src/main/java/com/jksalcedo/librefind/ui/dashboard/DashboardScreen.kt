@@ -12,11 +12,16 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ExitToApp
 import androidx.compose.material.icons.filled.AccountCircle
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.BugReport
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.CloudUpload
 import androidx.compose.material.icons.filled.Group
 import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
@@ -30,6 +35,8 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.TextField
+import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
@@ -40,6 +47,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.text.font.FontWeight
@@ -58,6 +66,7 @@ fun DashboardScreen(
     onAppClick: (String, String) -> Unit,
     onSubmitClick: () -> Unit = {},
     onMySubmissionsClick: () -> Unit = {},
+    onIgnoredAppsClick: () -> Unit = {},
     viewModel: DashboardViewModel = koinViewModel(),
     authViewModel: AuthViewModel = koinViewModel()
 ) {
@@ -66,27 +75,58 @@ fun DashboardScreen(
     var showDialog by remember { mutableStateOf(false) }
     var showProfileDialog by remember { mutableStateOf(false) }
 
+    var isSearchActive by remember { mutableStateOf(false) }
+
     Scaffold(
         topBar = {
             TopAppBar(
                 title = {
-                    Text(
-                        text = "LibreFind",
-                        fontWeight = FontWeight.Bold
-                    )
-                },
-                actions = {
-                    IconButton(onClick = { viewModel.scan() }) {
-                        Icon(
-                            imageVector = Icons.Default.Refresh,
-                            contentDescription = "Refresh scan"
+                    if (isSearchActive) {
+                        TextField(
+                            value = state.searchQuery,
+                            onValueChange = { viewModel.updateSearchQuery(it) },
+                            placeholder = { Text("Search apps...") },
+                            singleLine = true,
+                            colors = TextFieldDefaults.colors(
+                                focusedContainerColor = Color.Transparent,
+                                unfocusedContainerColor = Color.Transparent,
+                                disabledContainerColor = Color.Transparent,
+                                focusedIndicatorColor = Color.Transparent,
+                                unfocusedIndicatorColor = Color.Transparent,
+                            ),
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                    } else {
+                        Text(
+                            text = "LibreFind",
+                            fontWeight = FontWeight.Bold
                         )
                     }
-                    IconButton(onClick = { showProfileDialog = true }) {
-                        Icon(
-                            imageVector = Icons.Default.AccountCircle,
-                            contentDescription = "Profile"
-                        )
+                },
+                actions = {
+                    if (isSearchActive) {
+                        IconButton(onClick = {
+                            isSearchActive = false
+                            viewModel.updateSearchQuery("")
+                        }) {
+                            Icon(Icons.Default.Close, contentDescription = "Close search")
+                        }
+                    } else {
+                        IconButton(onClick = { isSearchActive = true }) {
+                            Icon(Icons.Default.Search, contentDescription = "Search")
+                        }
+                        IconButton(onClick = { viewModel.scan() }) {
+                            Icon(
+                                imageVector = Icons.Default.Refresh,
+                                contentDescription = "Refresh scan"
+                            )
+                        }
+                        IconButton(onClick = { showProfileDialog = true }) {
+                            Icon(
+                                imageVector = Icons.Default.AccountCircle,
+                                contentDescription = "Profile"
+                            )
+                        }
                     }
                 },
                 scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
@@ -152,7 +192,7 @@ fun DashboardScreen(
                                 contentAlignment = Alignment.Center
                             ) {
                                 Text(
-                                    text = "No apps found",
+                                    text = if (state.searchQuery.isNotEmpty()) "No matching apps" else "No apps found",
                                     style = MaterialTheme.typography.bodyLarge,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
@@ -162,6 +202,7 @@ fun DashboardScreen(
                         ScanList(
                             apps = state.apps,
                             onAppClick = onAppClick,
+                            onIgnoreClick = { packageName -> viewModel.ignoreApp(packageName) },
                             modifier = Modifier.fillMaxSize(),
                             headerContent = {
                                 state.sovereigntyScore?.let { score ->
@@ -189,7 +230,7 @@ fun DashboardScreen(
                 if (authState.isSignedIn && authState.userProfile != null) {
                     AlertDialog(
                         onDismissRequest = { showProfileDialog = false },
-                        title = { Text("Profile & About") },
+                        title = { Text("Profile & Settings") },
                         text = {
                             Column(
                                 modifier = Modifier.fillMaxWidth(),
@@ -261,19 +302,60 @@ fun DashboardScreen(
                                     Spacer(modifier = Modifier.width(8.dp))
                                     Text("Join Community")
                                 }
+                                Spacer(modifier = Modifier.height(8.dp))
+                                HorizontalDivider()
+                                Spacer(modifier = Modifier.height(8.dp))
+
+                                OutlinedButton(
+                                    onClick = {
+                                        showProfileDialog = false
+                                        onIgnoredAppsClick()
+                                    },
+                                    modifier = Modifier.fillMaxWidth()
+                                ) {
+                                    Icon(Icons.Default.VisibilityOff, contentDescription = null)
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    Text("Ignored Apps")
+                                }
+
+                                Spacer(modifier = Modifier.height(8.dp))
+
+                                OutlinedButton(
+                                    onClick = {
+                                        showProfileDialog = false
+                                        onMySubmissionsClick()
+                                    },
+                                    modifier = Modifier.fillMaxWidth()
+                                ) {
+                                    Icon(Icons.Default.CloudUpload, contentDescription = null)
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    Text("My Submissions")
+                                }
+
+                                Spacer(modifier = Modifier.height(16.dp))
+                                HorizontalDivider()
+                                Spacer(modifier = Modifier.height(16.dp))
+
+                                OutlinedButton(
+                                    onClick = {
+                                        showProfileDialog = false
+                                        authViewModel.signOut()
+                                    },
+                                    modifier = Modifier.fillMaxWidth(),
+                                    colors = androidx.compose.material3.ButtonDefaults.outlinedButtonColors(
+                                        contentColor = MaterialTheme.colorScheme.error
+                                    )
+                                ) {
+                                    Icon(
+                                        Icons.AutoMirrored.Filled.ExitToApp,
+                                        contentDescription = null
+                                    )
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    Text("Sign Out")
+                                }
                             }
                         },
                         confirmButton = {
-                            TextButton(
-                                onClick = {
-                                    showProfileDialog = false
-                                    onMySubmissionsClick()
-                                }
-                            ) {
-                                Text("My Submissions")
-                            }
-                        },
-                        dismissButton = {
                             TextButton(onClick = { showProfileDialog = false }) {
                                 Text("Close")
                             }

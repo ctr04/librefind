@@ -5,6 +5,7 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Email
 import androidx.compose.material.icons.filled.Lock
+import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material3.*
@@ -27,6 +28,7 @@ fun AuthScreen(
 
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
+    var username by remember { mutableStateOf("") }
     var isSignUp by remember { mutableStateOf(false) }
     var showPassword by remember { mutableStateOf(false) }
 
@@ -66,6 +68,19 @@ fun AuthScreen(
             )
 
             Spacer(modifier = Modifier.height(32.dp))
+
+            if (isSignUp) {
+                OutlinedTextField(
+                    value = username,
+                    onValueChange = { username = it },
+                    label = { Text("Username") },
+                    leadingIcon = { Icon(Icons.Default.Person, contentDescription = null) },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth()
+                )
+
+                Spacer(modifier = Modifier.height(16.dp))
+            }
 
             OutlinedTextField(
                 value = email,
@@ -109,12 +124,18 @@ fun AuthScreen(
 
             Spacer(modifier = Modifier.height(24.dp))
 
+            val isFormValid = if (isSignUp) {
+                email.isNotBlank() && password.length >= 6 && username.isNotBlank()
+            } else {
+                email.isNotBlank() && password.length >= 6
+            }
+
             Button(
                 onClick = {
-                    if (isSignUp) viewModel.signUp(email, password)
+                    if (isSignUp) viewModel.signUp(email, password, username)
                     else viewModel.signIn(email, password)
                 },
-                enabled = email.isNotBlank() && password.length >= 6 && !uiState.isLoading,
+                enabled = isFormValid && !uiState.isLoading,
                 modifier = Modifier.fillMaxWidth()
             ) {
                 if (uiState.isLoading) {
@@ -136,5 +157,23 @@ fun AuthScreen(
                 )
             }
         }
+    }
+
+    if (uiState.showCheckEmailDialog) {
+        AlertDialog(
+            onDismissRequest = { },
+            title = { Text("Check Your Email") },
+            text = {
+                Text("We've sent a verification link to your email address. Please verify your email before signing in.")
+            },
+            confirmButton = {
+                Button(onClick = {
+                    viewModel.dismissCheckEmailDialog()
+                    isSignUp = false
+                }) {
+                    Text("Go to Sign In")
+                }
+            }
+        )
     }
 }

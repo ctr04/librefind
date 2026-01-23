@@ -2,9 +2,9 @@ package com.jksalcedo.librefind.ui.mysubmissions
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.jksalcedo.librefind.data.remote.firebase.AuthService
 import com.jksalcedo.librefind.domain.model.Submission
-import com.jksalcedo.librefind.domain.repository.KnowledgeGraphRepo
+import com.jksalcedo.librefind.domain.repository.AppRepository
+import com.jksalcedo.librefind.domain.repository.AuthRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -17,8 +17,8 @@ data class MySubmissionsUiState(
 )
 
 class MySubmissionsViewModel(
-    private val knowledgeGraphRepo: KnowledgeGraphRepo,
-    private val authService: AuthService
+    private val appRepository: AppRepository,
+    private val authRepository: AuthRepository
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(MySubmissionsUiState())
@@ -31,7 +31,7 @@ class MySubmissionsViewModel(
     fun fetchSubmissions() {
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isLoading = true, error = null)
-            val user = authService.getCurrentUser()
+            val user = authRepository.getCurrentUser()
             if (user == null) {
                 _uiState.value = _uiState.value.copy(
                     isLoading = false,
@@ -41,7 +41,7 @@ class MySubmissionsViewModel(
             }
 
             try {
-                val submissions = knowledgeGraphRepo.getMySubmissions(user.uid)
+                val submissions = appRepository.getMySubmissions(user.uid)
                 _uiState.value = _uiState.value.copy(
                     isLoading = false,
                     submissions = submissions

@@ -5,8 +5,8 @@ import com.jksalcedo.librefind.data.local.InventorySource
 import com.jksalcedo.librefind.data.local.SafeSignatureDb
 import com.jksalcedo.librefind.domain.model.AppItem
 import com.jksalcedo.librefind.domain.model.AppStatus
+import com.jksalcedo.librefind.domain.repository.AppRepository
 import com.jksalcedo.librefind.domain.repository.DeviceInventoryRepo
-import com.jksalcedo.librefind.domain.repository.KnowledgeGraphRepo
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
@@ -17,15 +17,7 @@ import kotlinx.coroutines.flow.flowOn
 
 /**
  * Implementation of DeviceInventoryRepo
- * 
- * Implements the three-step classification logic:
- * A. Source Check (Fast Filter)
- * B. Signature Check (Verification)
- * C. Database Query (LibreFind Cloud)
- */
-/**
- * Implementation of DeviceInventoryRepo
- * 
+ *
  * Implements the three-step classification logic:
  * A. Source Check (Fast Filter)
  * B. Signature Check (Verification)
@@ -34,7 +26,7 @@ import kotlinx.coroutines.flow.flowOn
 class DeviceInventoryRepoImpl(
     private val localSource: InventorySource,
     private val signatureDb: SafeSignatureDb,
-    private val knowledgeRepo: KnowledgeGraphRepo
+    private val appRepository: AppRepository
 ) : DeviceInventoryRepo {
 
     companion object {
@@ -44,16 +36,16 @@ class DeviceInventoryRepoImpl(
 
     override suspend fun scanAndClassify(): Flow<List<AppItem>> = flow {
         val rawApps = localSource.getRawApps()
-        
+
         val classifiedApps = coroutineScope {
             rawApps.map { pkg ->
                 async { classifyApp(pkg) }
             }.awaitAll()
         }
-        
+
         // Sort by classification priority (PROP > UNKN > FOSS)
         val sorted = classifiedApps.sortedBy { it.status.sortWeight }
-        
+
         emit(sorted)
     }.flowOn(Dispatchers.IO)
 
@@ -64,27 +56,28 @@ class DeviceInventoryRepoImpl(
         val packageName = pkg.packageName
         val label = localSource.getAppLabel(packageName)
         val installer = localSource.getInstaller(packageName)
-        
-        // STEP A: Fast Filter - Check installer
+        val icon = pkg.applicationInfo?.icon
+
+        // Fast Filter - Check installer
         if (installer == FDROID_INSTALLER) {
-            return createAppItem(packageName, label, AppStatus.FOSS, installer)
+            return createAppItem(packageName, label, AppStatus.FOSS, installer, icon)
         }
-        
-        // STEP B: Signature Check (for FOSS apps on Play Store)
+
+        // Signature Check (for FOSS apps on Play Store)
         if (signatureDb.isKnownFossApp(packageName)) {
-            return createAppItem(packageName, label, AppStatus.FOSS, installer)
+            return createAppItem(packageName, label, AppStatus.FOSS, installer, icon)
         }
-        
-        // STEP C: Database Query
+
+        // Database Query
         val isProprietary = try {
-            knowledgeRepo.isProprietary(packageName)
-        } catch (e: Exception) {
+            appRepository.isProprietary(packageName)
+        } catch (_: Exception) {
             false
         }
-        
+
         val status = if (isProprietary) AppStatus.PROP else AppStatus.UNKN
-        
-        return createAppItem(packageName, label, status, installer)
+
+        return createAppItem(packageName, label, status, installer, icon)
     }
 
     /**
@@ -94,24 +87,26 @@ class DeviceInventoryRepoImpl(
         packageName: String,
         label: String,
         status: AppStatus,
-        installer: String?
+        installer: String?,
+        icon: Int?
     ): AppItem {
         val alternativesCount = if (status == AppStatus.PROP) {
             try {
-                knowledgeRepo.getAlternatives(packageName).size
-            } catch (e: Exception) {
+                appRepository.getAlternatives(packageName).size
+            } catch (_: Exception) {
                 0
             }
         } else {
             0
         }
-        
+
         return AppItem(
             packageName = packageName,
             label = label,
             status = status,
             installerId = installer,
-            knownAlternatives = alternativesCount
+            knownAlternatives = alternativesCount,
+            icon = icon
         )
     }
 
