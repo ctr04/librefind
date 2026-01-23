@@ -27,6 +27,8 @@ import com.jksalcedo.librefind.ui.theme.TransitionBlue
 @Composable
 fun SovereigntyGauge(
     score: SovereigntyScore,
+    currentFilter: com.jksalcedo.librefind.domain.model.AppStatus?,
+    onFilterClick: (com.jksalcedo.librefind.domain.model.AppStatus?) -> Unit,
     modifier: Modifier = Modifier,
     onClick: () -> Unit
 ) {
@@ -55,7 +57,6 @@ fun SovereigntyGauge(
                 strokeCap = StrokeCap.Round,
             )
 
-            // Center Text
             Column(
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
@@ -82,9 +83,42 @@ fun SovereigntyGauge(
             verticalArrangement = Arrangement.SpaceAround,
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            StatItem(label = "FOSS", count = score.fossCount, color = FossGreen)
-            StatItem(label = "PROPRIETARY", count = score.proprietaryCount, color = CapturedOrange)
-            StatItem(label = "Unknown", count = score.unknownCount, color = MaterialTheme.colorScheme.outline)
+            StatItem(
+                label = "FOSS",
+                count = score.fossCount,
+                color = FossGreen,
+                isActive = currentFilter == com.jksalcedo.librefind.domain.model.AppStatus.FOSS,
+                onClick = {
+                    onFilterClick(
+                        if (currentFilter == com.jksalcedo.librefind.domain.model.AppStatus.FOSS) null
+                        else com.jksalcedo.librefind.domain.model.AppStatus.FOSS
+                    )
+                }
+            )
+            StatItem(
+                label = "PROPRIETARY",
+                count = score.proprietaryCount,
+                color = CapturedOrange,
+                isActive = currentFilter == com.jksalcedo.librefind.domain.model.AppStatus.PROP,
+                onClick = {
+                    onFilterClick(
+                        if (currentFilter == com.jksalcedo.librefind.domain.model.AppStatus.PROP) null
+                        else com.jksalcedo.librefind.domain.model.AppStatus.PROP
+                    )
+                }
+            )
+            StatItem(
+                label = "Unknown",
+                count = score.unknownCount,
+                color = MaterialTheme.colorScheme.outline,
+                isActive = currentFilter == com.jksalcedo.librefind.domain.model.AppStatus.UNKN,
+                onClick = {
+                    onFilterClick(
+                        if (currentFilter == com.jksalcedo.librefind.domain.model.AppStatus.UNKN) null
+                        else com.jksalcedo.librefind.domain.model.AppStatus.UNKN
+                    )
+                }
+            )
         }
     }
 }
@@ -93,18 +127,23 @@ fun SovereigntyGauge(
 private fun StatItem(
     label: String,
     count: Int,
-    color: Color
+    color: Color,
+    isActive: Boolean = false,
+    onClick: () -> Unit = {}
 ) {
     Row(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.SpaceBetween,
-        modifier = Modifier.fillMaxWidth()
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick)
+            .padding(vertical = 4.dp, horizontal = 8.dp)
     ) {
         Text(
             text = label,
             style = MaterialTheme.typography.labelMedium,
-            fontWeight = FontWeight.Bold,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
+            fontWeight = if (isActive) FontWeight.ExtraBold else FontWeight.Bold,
+            color = if (isActive) color else MaterialTheme.colorScheme.onSurfaceVariant
         )
         Text(
             text = count.toString(),
@@ -134,7 +173,6 @@ private fun getLevelText(level: SovereigntyLevel): String {
 @Preview(showBackground = true)
 @Composable
 fun PreviewSovereigntyGauge() {
-    // Mock Data
     val mockScore = SovereigntyScore(
         totalApps = 100,
         fossCount = 45,
@@ -143,6 +181,11 @@ fun PreviewSovereigntyGauge() {
     )
 
     MaterialTheme {
-        SovereigntyGauge(score = mockScore) {}
+        SovereigntyGauge(
+            score = mockScore,
+            currentFilter = null,
+            onFilterClick = {},
+            onClick = {}
+        )
     }
 }

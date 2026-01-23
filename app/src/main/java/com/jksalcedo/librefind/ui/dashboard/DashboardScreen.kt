@@ -115,12 +115,6 @@ fun DashboardScreen(
                         IconButton(onClick = { isSearchActive = true }) {
                             Icon(Icons.Default.Search, contentDescription = "Search")
                         }
-                        IconButton(onClick = { viewModel.scan() }) {
-                            Icon(
-                                imageVector = Icons.Default.Refresh,
-                                contentDescription = "Refresh scan"
-                            )
-                        }
                         IconButton(onClick = { showProfileDialog = true }) {
                             Icon(
                                 imageVector = Icons.Default.AccountCircle,
@@ -184,6 +178,8 @@ fun DashboardScreen(
                             state.sovereigntyScore?.let { score ->
                                 SovereigntyGauge(
                                     score = score,
+                                    currentFilter = state.statusFilter,
+                                    onFilterClick = { status -> viewModel.setStatusFilter(status) },
                                     modifier = Modifier.padding(16.dp)
                                 ) { showDialog = true }
                             }
@@ -203,11 +199,15 @@ fun DashboardScreen(
                             apps = state.apps,
                             onAppClick = onAppClick,
                             onIgnoreClick = { packageName -> viewModel.ignoreApp(packageName) },
+                            onRefresh = { viewModel.scan() },
+                            isRefreshing = state.isLoading,
                             modifier = Modifier.fillMaxSize(),
                             headerContent = {
                                 state.sovereigntyScore?.let { score ->
                                     SovereigntyGauge(
                                         score = score,
+                                        currentFilter = state.statusFilter,
+                                        onFilterClick = { status -> viewModel.setStatusFilter(status) },
                                         modifier = Modifier.padding(bottom = 8.dp)
                                     ) { showDialog = true }
                                 }
@@ -221,6 +221,8 @@ fun DashboardScreen(
                 state.sovereigntyScore?.let { score ->
                     GaugeDetailsDialog(
                         score = score,
+                        currentFilter = state.statusFilter,
+                        onFilterClick = { status -> viewModel.setStatusFilter(status) },
                         onDismissRequest = { showDialog = false }
                     )
                 }

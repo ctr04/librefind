@@ -43,27 +43,34 @@ fun ScanList(
     apps: List<AppItem>,
     onAppClick: (String, String) -> Unit,
     onIgnoreClick: (String) -> Unit,
+    onRefresh: () -> Unit,
+    isRefreshing: Boolean,
     modifier: Modifier = Modifier,
     headerContent: (@Composable () -> Unit)? = null
 ) {
-    LazyColumn(
-        modifier = modifier,
-        contentPadding = PaddingValues(16.dp),
-        verticalArrangement = Arrangement.spacedBy(8.dp)
+    androidx.compose.material3.pulltorefresh.PullToRefreshBox(
+        isRefreshing = isRefreshing,
+        onRefresh = onRefresh,
+        modifier = modifier
     ) {
-        if (headerContent != null) {
-            item {
-                headerContent()
-                Spacer(modifier = Modifier.height(16.dp))
+        LazyColumn(
+            contentPadding = PaddingValues(16.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            if (headerContent != null) {
+                item {
+                    headerContent()
+                    Spacer(modifier = Modifier.height(16.dp))
+                }
             }
-        }
 
-        items(apps, key = { it.packageName }) { app ->
-            AppRow(
-                app = app,
-                onClick = { onAppClick(app.label, app.packageName) },
-                onIgnoreClick = { onIgnoreClick(app.packageName) }
-            )
+            items(apps, key = { it.packageName }) { app ->
+                AppRow(
+                    app = app,
+                    onClick = { onAppClick(app.label, app.packageName) },
+                    onIgnoreClick = { onIgnoreClick(app.packageName) }
+                )
+            }
         }
     }
 }
