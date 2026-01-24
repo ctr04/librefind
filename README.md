@@ -21,6 +21,13 @@ base for proprietary app detection and FOSS alternative recommendations.
 
 Help users replace proprietary apps with FOSS alternatives.
 
+## Screenshots
+
+| Dashboard | Alternative List | Submission | Profile |
+|-----------|------------------|------------|---------|
+| ![Dashboard](metadata/en-US/images/phoneScreenshots/dashboard.jpg) | ![Alternatives](metadata/en-US/images/phoneScreenshots/alternative_list.jpg) | ![Submission](metadata/en-US/images/phoneScreenshots/submission.jpg) | ![Profile](metadata/en-US/images/phoneScreenshots/profile.jpg) |
+| Scan your apps and view sovereignty score | Browse FOSS alternatives | Contribute new alternatives | Track your submissions |
+
 ### Community
 
 - Users can propose new FOSS alternatives
@@ -29,16 +36,19 @@ Help users replace proprietary apps with FOSS alternatives.
 - Community voting system
 
 ## Help Build the LibreFind
+
 The applications database grows entirely through **your contributions**.
 
 ### Why contribute?
+
 - **Replace your daily apps** with better FOSS options
-- **Your votes shape rankings** for everyone  
+- **Your votes shape rankings** for everyone
 - **Submit missing alternatives** others need too
 - **Every submission makes LibreFind more useful**
 
   
 ---
+
 ### Required Permissions
 
 - `QUERY_ALL_PACKAGES` - To scan installed apps
