@@ -37,6 +37,9 @@ data class UserSubmissionDto(
     @SerialName("app_package") val appPackage: String,
     val description: String,
     @SerialName("proprietary_package") val proprietaryPackage: String? = null,
+    @SerialName("repo_url") val repoUrl: String? = null,
+    @SerialName("fdroid_id") val fdroidId: String? = null,
+    val license: String? = null,
     val status: String = "PENDING",
     @SerialName("submitter_id") val submitterId: String,
     @SerialName("created_at") val createdAt: String? = null

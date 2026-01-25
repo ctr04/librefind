@@ -215,6 +215,9 @@ class SupabaseAppRepository(
         alternativePackage: String,
         appName: String,
         description: String,
+        repoUrl: String,
+        fdroidId: String,
+        license: String,
         userId: String
     ): Result<Unit> = runCatching {
         Log.d(
@@ -227,6 +230,9 @@ class SupabaseAppRepository(
                 appPackage = alternativePackage,
                 description = description,
                 proprietaryPackage = proprietaryPackage.ifBlank { null },
+                repoUrl = repoUrl.ifBlank { null },
+                fdroidId = fdroidId.ifBlank { null },
+                license = license.ifBlank { null },
                 submitterId = userId
             )
             supabase.postgrest.from("user_submissions").insert(submission)

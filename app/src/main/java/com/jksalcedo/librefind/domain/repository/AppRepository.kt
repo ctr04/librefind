@@ -16,6 +16,9 @@ interface AppRepository {
         alternativePackage: String,
         appName: String,
         description: String,
+        repoUrl: String,
+        fdroidId: String,
+        license: String,
         userId: String
     ): Result<Unit>
 

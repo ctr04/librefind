@@ -77,6 +77,9 @@ class SubmitViewModel(
                 alternativeId = packageName,
                 appName = appName,
                 description = description,
+                repoUrl = repoUrl,
+                fdroidId = fdroidId,
+                license = license,
                 userId = user.uid
             )
 
