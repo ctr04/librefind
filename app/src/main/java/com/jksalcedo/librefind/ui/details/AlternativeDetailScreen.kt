@@ -26,6 +26,7 @@ import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Shop
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -54,6 +55,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
@@ -72,6 +74,7 @@ fun AlternativeDetailScreen(
     val context = LocalContext.current
     var menuExpanded by remember { mutableStateOf(false) }
     var showFeedbackDialog by remember { mutableStateOf(false) }
+    var showVotingSection by remember { mutableStateOf(false) }
     var feedbackType by remember { mutableIntStateOf(0) }
     var feedbackText by remember { mutableStateOf("") }
 
@@ -207,58 +210,129 @@ fun AlternativeDetailScreen(
                         )
 
                         Spacer(modifier = Modifier.height(8.dp))
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            repeat(5) { index ->
-                                Icon(
-                                    Icons.Default.Star,
-                                    null,
-                                    modifier = Modifier.size(24.dp),
-                                    tint = if (index < alt.ratingAvg.toInt()) MaterialTheme.colorScheme.primary
-                                    else MaterialTheme.colorScheme.surfaceVariant
-                                )
-                            }
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Text(
-                                "${alt.displayRating} (${alt.ratingCount})",
-                                style = MaterialTheme.typography.titleMedium
-                            )
-                        }
 
-                        // Rating
-                        Spacer(modifier = Modifier.height(16.dp))
+                        // Dimensional Rating Scorecard
                         Card(
                             modifier = Modifier.fillMaxWidth(),
                             colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
                         ) {
                             Column(modifier = Modifier.padding(16.dp)) {
-                                if (state.isSignedIn) {
-                                    Row(
-                                        modifier = Modifier.fillMaxWidth(),
-                                        horizontalArrangement = Arrangement.SpaceBetween,
-                                        verticalAlignment = Alignment.CenterVertically
-                                    ) {
-                                        Text(
-                                            "Your rating",
-                                            style = MaterialTheme.typography.bodyMedium
-                                        )
-                                        Row {
-                                            (1..5).forEach { star ->
-                                                IconButton(
-                                                    onClick = { viewModel.rate(star) },
-                                                    modifier = Modifier.size(40.dp)
-                                                ) {
-                                                    Icon(
-                                                        Icons.Default.Star,
-                                                        "Rate $star",
-                                                        tint = if (star <= (alt.userRating
-                                                                ?: 0)
-                                                        ) MaterialTheme.colorScheme.primary
-                                                        else MaterialTheme.colorScheme.onSurfaceVariant,
-                                                        modifier = Modifier.size(28.dp)
-                                                    )
-                                                }
+                                Text(
+                                    "Ratings",
+                                    style = MaterialTheme.typography.titleMedium,
+                                    fontWeight = FontWeight.Bold
+                                )
+                                Spacer(modifier = Modifier.height(12.dp))
+
+                                // Privacy Rating
+                                DimensionalRatingRow(
+                                    label = "Privacy",
+                                    description = "Respects your data",
+                                    rating = alt.privacyRating,
+                                    displayRating = alt.displayPrivacyRating
+                                )
+
+                                Spacer(modifier = Modifier.height(8.dp))
+
+                                // Usability Rating
+                                DimensionalRatingRow(
+                                    label = "Usability",
+                                    description = "Easy to use",
+                                    rating = alt.usabilityRating,
+                                    displayRating = alt.displayUsabilityRating
+                                )
+
+                                Spacer(modifier = Modifier.height(8.dp))
+
+                                // Feature Parity Rating
+                                DimensionalRatingRow(
+                                    label = "Feature Parity",
+                                    description = "Complete alternative",
+                                    rating = alt.featuresRating,
+                                    displayRating = alt.displayFeaturesRating
+                                )
+                            }
+                        }
+
+                        // User Rating Section with Button
+                        if (state.isSignedIn) {
+                            Spacer(modifier = Modifier.height(16.dp))
+                            if (!showVotingSection) {
+                                Button(
+                                    onClick = { showVotingSection = true },
+                                    modifier = Modifier.fillMaxWidth()
+                                ) {
+                                    Icon(Icons.Default.Star, contentDescription = null)
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    Text("Rate this app")
+                                }
+                            } else {
+                                Card(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+                                ) {
+                                    Column(modifier = Modifier.padding(16.dp)) {
+                                        Row(
+                                            modifier = Modifier.fillMaxWidth(),
+                                            horizontalArrangement = Arrangement.SpaceBetween,
+                                            verticalAlignment = Alignment.CenterVertically
+                                        ) {
+                                            Text(
+                                                "Your Ratings",
+                                                style = MaterialTheme.typography.titleMedium,
+                                                fontWeight = FontWeight.Bold
+                                            )
+                                            IconButton(onClick = { showVotingSection = false }) {
+                                                Icon(
+                                                    Icons.Default.Add,
+                                                    contentDescription = "Close",
+                                                    modifier = Modifier
+                                                        .size(20.dp)
+                                                        .rotate(45f)
+                                                )
                                             }
                                         }
+                                        Spacer(modifier = Modifier.height(12.dp))
+
+                                        // Privacy
+                                        UserRatingRow(
+                                            label = "Privacy",
+                                            userRating = alt.userPrivacyRating,
+                                            onRate = { stars ->
+                                                viewModel.rateDimension(
+                                                    com.jksalcedo.librefind.domain.model.VoteType.PRIVACY,
+                                                    stars
+                                                )
+                                            }
+                                        )
+
+                                        Spacer(modifier = Modifier.height(8.dp))
+
+                                        // Usability
+                                        UserRatingRow(
+                                            label = "Usability",
+                                            userRating = alt.userUsabilityRating,
+                                            onRate = { stars ->
+                                                viewModel.rateDimension(
+                                                    com.jksalcedo.librefind.domain.model.VoteType.USABILITY,
+                                                    stars
+                                                )
+                                            }
+                                        )
+
+                                        Spacer(modifier = Modifier.height(8.dp))
+
+                                        // Feature Parity
+                                        UserRatingRow(
+                                            label = "Features",
+                                            userRating = alt.userFeaturesRating,
+                                            onRate = { stars ->
+                                                viewModel.rateDimension(
+                                                    com.jksalcedo.librefind.domain.model.VoteType.FEATURES,
+                                                    stars
+                                                )
+                                            }
+                                        )
                                     }
                                 }
                             }
@@ -429,4 +503,83 @@ fun AltDetailsPreview() {
         "",
         onBackClick = {}
     )
+}
+
+@Composable
+private fun DimensionalRatingRow(
+    label: String,
+    description: String,
+    rating: Float,
+    displayRating: String
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                label,
+                style = MaterialTheme.typography.bodyLarge,
+                fontWeight = FontWeight.SemiBold
+            )
+            Text(
+                description,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            repeat(5) { index ->
+                Icon(
+                    Icons.Default.Star,
+                    null,
+                    modifier = Modifier.size(16.dp),
+                    tint = if (index < rating.toInt()) MaterialTheme.colorScheme.primary
+                    else MaterialTheme.colorScheme.surfaceVariant
+                )
+            }
+            Spacer(modifier = Modifier.width(8.dp))
+            Text(
+                displayRating,
+                style = MaterialTheme.typography.bodyMedium,
+                fontWeight = FontWeight.Bold,
+                modifier = Modifier.width(30.dp)
+            )
+        }
+    }
+}
+
+@Composable
+private fun UserRatingRow(
+    label: String,
+    userRating: Int?,
+    onRate: (Int) -> Unit
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(
+            label,
+            style = MaterialTheme.typography.bodyMedium
+        )
+        Row {
+            (1..5).forEach { star ->
+                IconButton(
+                    onClick = { onRate(star) },
+                    modifier = Modifier.size(36.dp)
+                ) {
+                    Icon(
+                        Icons.Default.Star,
+                        "Rate $star",
+                        tint = if (star <= (userRating ?: 0)) MaterialTheme.colorScheme.primary
+                        else MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.size(24.dp)
+                    )
+                }
+            }
+        }
+    }
 }

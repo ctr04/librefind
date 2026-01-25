@@ -3,6 +3,7 @@ package com.jksalcedo.librefind.ui.details
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.jksalcedo.librefind.domain.model.Alternative
+import com.jksalcedo.librefind.domain.model.VoteType
 import com.jksalcedo.librefind.domain.repository.AppRepository
 import com.jksalcedo.librefind.domain.repository.AuthRepository
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -29,16 +30,21 @@ class AlternativeDetailViewModel(
             val user = authRepository.getCurrentUser()
             val alternative = appRepository.getAlternative(altId)
 
-            val userRating: Int? = if (user != null) {
+            val userVotes: Map<String, Int?> = if (user != null) {
                 appRepository.getUserVote(altId, user.uid)
             } else {
-                null
+                mapOf("usability" to null, "privacy" to null, "features" to null)
             }
 
             _state.update {
                 it.copy(
                     isLoading = false,
-                    alternative = alternative?.copy(userRating = userRating),
+                    alternative = alternative?.copy(
+                        userUsabilityRating = userVotes["usability"],
+                        userPrivacyRating = userVotes["privacy"],
+                        userFeaturesRating = userVotes["features"],
+                        userRating = userVotes["usability"]
+                    ),
                     isSignedIn = user != null,
                     username = user?.username
                 )
@@ -47,16 +53,25 @@ class AlternativeDetailViewModel(
     }
 
     fun rate(stars: Int) {
+        rateDimension(VoteType.USABILITY, stars)
+    }
+
+    fun rateDimension(voteType: VoteType, stars: Int) {
         if (!_state.value.isSignedIn) return
 
         _state.update { state ->
             state.copy(
-                alternative = state.alternative?.copy(userRating = stars)
+                alternative = state.alternative?.copy(
+                    userUsabilityRating = if (voteType == VoteType.USABILITY) stars else state.alternative.userUsabilityRating,
+                    userPrivacyRating = if (voteType == VoteType.PRIVACY) stars else state.alternative.userPrivacyRating,
+                    userFeaturesRating = if (voteType == VoteType.FEATURES) stars else state.alternative.userFeaturesRating,
+                    userRating = if (voteType == VoteType.USABILITY) stars else state.alternative.userRating
+                )
             )
         }
 
         viewModelScope.launch {
-            appRepository.castVote(currentAltId, "usability", stars)
+            appRepository.castVote(currentAltId, voteType.key, stars)
             loadAlternative(currentAltId)
         }
     }

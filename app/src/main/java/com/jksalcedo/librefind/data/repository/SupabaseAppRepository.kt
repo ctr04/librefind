@@ -60,51 +60,16 @@ class SupabaseAppRepository(
                 }.decodeList<SolutionDto>()
 
             solutions.map { dto ->
-                val votesJson = dto.votes?.let { json ->
-                    try {
-                        json as? kotlinx.serialization.json.JsonObject
-                    } catch (e: Exception) {
-                        Log.e(
-                            "SupabaseAppRepo",
-                            "Failed to parse votes JSON for ${dto.packageName}",
-                            e
-                        )
-                        null
-                    }
-                }
+                val usabilityRating = dto.ratingUsability ?: 0f
+                val privacyRating = dto.ratingPrivacy ?: 0f
+                val featuresRating = dto.ratingFeatures ?: 0f
+                val ratingCount = dto.voteCount ?: 0
 
-                val ratingAvg = votesJson?.get("average")?.let { avgElement ->
-                    try {
-                        when (avgElement) {
-                            is kotlinx.serialization.json.JsonPrimitive -> avgElement.content.toFloatOrNull()
-                            else -> null
-                        }
-                    } catch (e: Exception) {
-                        Log.e(
-                            "SupabaseAppRepo",
-                            "Failed to parse average for ${dto.packageName}",
-                            e
-                        )
-                        null
-                    }
-                } ?: 0.0f
-
-                val ratingCount = votesJson?.get("count")?.let { countElement ->
-                    try {
-                        when (countElement) {
-                            is kotlinx.serialization.json.JsonPrimitive -> countElement.content.toIntOrNull()
-                            else -> null
-                        }
-                    } catch (e: Exception) {
-                        Log.e("SupabaseAppRepo", "Failed to parse count for ${dto.packageName}", e)
-                        null
-                    }
-                } ?: 0
-
-                Log.d(
-                    "SupabaseAppRepo",
-                    "Parsed ratings for ${dto.packageName}: avg=$ratingAvg, count=$ratingCount, votesJson=$votesJson"
-                )
+                val ratingAvg = if (ratingCount > 0) {
+                    val sum = usabilityRating + privacyRating + featuresRating
+                    val nonZeroCount = listOf(usabilityRating, privacyRating, featuresRating).count { it > 0 }
+                    if (nonZeroCount > 0) sum / nonZeroCount else 0f
+                } else 0f
 
                 Alternative(
                     id = dto.packageName,
@@ -116,6 +81,9 @@ class SupabaseAppRepository(
                     iconUrl = dto.iconUrl,
                     ratingAvg = ratingAvg,
                     ratingCount = ratingCount,
+                    usabilityRating = usabilityRating,
+                    privacyRating = privacyRating,
+                    featuresRating = featuresRating,
                     description = dto.description,
                     features = dto.features.orEmpty(),
                     pros = dto.pros.orEmpty(),
@@ -137,43 +105,16 @@ class SupabaseAppRepository(
                     }
                 }.decodeSingleOrNull<SolutionDto>() ?: return null
 
-            val votesJson = dto.votes?.let { json ->
-                try {
-                    json as? kotlinx.serialization.json.JsonObject
-                } catch (e: Exception) {
-                    Log.e("SupabaseAppRepo", "Failed to parse votes JSON for ${dto.packageName}", e)
-                    null
-                }
-            }
+            val usabilityRating = dto.ratingUsability ?: 0f
+            val privacyRating = dto.ratingPrivacy ?: 0f
+            val featuresRating = dto.ratingFeatures ?: 0f
+            val ratingCount = dto.voteCount ?: 0
 
-            val ratingAvg = votesJson?.get("average")?.let { avgElement ->
-                try {
-                    when (avgElement) {
-                        is kotlinx.serialization.json.JsonPrimitive -> avgElement.content.toFloatOrNull()
-                        else -> null
-                    }
-                } catch (e: Exception) {
-                    Log.e("SupabaseAppRepo", "Failed to parse average for ${dto.packageName}", e)
-                    null
-                }
-            } ?: 0.0f
-
-            val ratingCount = votesJson?.get("count")?.let { countElement ->
-                try {
-                    when (countElement) {
-                        is kotlinx.serialization.json.JsonPrimitive -> countElement.content.toIntOrNull()
-                        else -> null
-                    }
-                } catch (e: Exception) {
-                    Log.e("SupabaseAppRepo", "Failed to parse count for ${dto.packageName}", e)
-                    null
-                }
-            } ?: 0
-
-            Log.d(
-                "SupabaseAppRepo",
-                "Parsed ratings for ${dto.packageName}: avg=$ratingAvg, count=$ratingCount, votesJson=$votesJson"
-            )
+            val ratingAvg = if (ratingCount > 0) {
+                val sum = usabilityRating + privacyRating + featuresRating
+                val nonZeroCount = listOf(usabilityRating, privacyRating, featuresRating).count { it > 0 }
+                if (nonZeroCount > 0) sum / nonZeroCount else 0f
+            } else 0f
 
             Alternative(
                 id = dto.packageName,
@@ -185,6 +126,9 @@ class SupabaseAppRepository(
                 iconUrl = dto.iconUrl,
                 ratingAvg = ratingAvg,
                 ratingCount = ratingCount,
+                usabilityRating = usabilityRating,
+                privacyRating = privacyRating,
+                featuresRating = featuresRating,
                 description = dto.description,
                 features = dto.features.orEmpty(),
                 pros = dto.pros.orEmpty(),
@@ -336,7 +280,8 @@ class SupabaseAppRepository(
                         SubmissionStatus.valueOf(dto.status)
                     } catch (_: Exception) {
                         SubmissionStatus.PENDING
-                    }
+                    },
+                    rejectionReason = dto.rejectionReason
                 )
             }
         } catch (e: Exception) {
@@ -345,19 +290,28 @@ class SupabaseAppRepository(
         }
     }
 
-    override suspend fun getUserVote(packageName: String, userId: String): Int? {
+    override suspend fun getUserVote(packageName: String, userId: String): Map<String, Int?> {
         return try {
-            supabase.postgrest.from("user_votes")
+            val votes = supabase.postgrest.from("user_votes")
                 .select {
                     filter {
                         eq("user_id", userId)
                         eq("package_name", packageName)
-                        eq("vote_type", "usability")
                     }
-                }.decodeSingleOrNull<UserVoteDto>()?.value
+                }.decodeList<UserVoteDto>()
+
+            mapOf(
+                "usability" to votes.find { it.voteType == "usability" }?.value,
+                "privacy" to votes.find { it.voteType == "privacy" }?.value,
+                "features" to votes.find { it.voteType == "features" }?.value
+            )
         } catch (e: Exception) {
             e.printStackTrace()
-            null
+            mapOf(
+                "usability" to null,
+                "privacy" to null,
+                "features" to null
+            )
         }
     }
 
@@ -381,6 +335,7 @@ class SupabaseAppRepository(
         val status: String = "PENDING",
         @SerialName("submitter_id") val submitterId: String,
         @SerialName("created_at") val createdAt: String? = null,
+        @SerialName("rejection_reason") val rejectionReason: String? = null,
         @SerialName("profiles") val profile: ProfileDto? = null // Joined table
     )
 }

@@ -17,7 +17,10 @@ data class SolutionDto(
     val pros: List<String>? = emptyList(),
     val cons: List<String>? = emptyList(),
     val features: List<String>? = emptyList(),
-    val votes: JsonElement? = null, // JSONB
+    @SerialName("rating_privacy") val ratingPrivacy: Float? = 0f,
+    @SerialName("rating_usability") val ratingUsability: Float? = 0f,
+    @SerialName("rating_features") val ratingFeatures: Float? = 0f,
+    @SerialName("vote_count") val voteCount: Int? = 0,
     @SerialName("created_at") val createdAt: String? = null
 )
 
@@ -42,7 +45,8 @@ data class UserSubmissionDto(
     val license: String? = null,
     val status: String = "PENDING",
     @SerialName("submitter_id") val submitterId: String,
-    @SerialName("created_at") val createdAt: String? = null
+    @SerialName("created_at") val createdAt: String? = null,
+    @SerialName("rejection_reason") val rejectionReason: String? = null
 )
 
 @Serializable
@@ -59,6 +63,6 @@ data class ProfileDto(
 data class UserVoteDto(
     @SerialName("user_id") val userId: String,
     @SerialName("package_name") val packageName: String,
-    @SerialName("vote_type") val voteType: String, // 'privacy' or 'usability'
-    val value: Int // 1 or -1
+    @SerialName("vote_type") val voteType: String,
+    val value: Int
 )
