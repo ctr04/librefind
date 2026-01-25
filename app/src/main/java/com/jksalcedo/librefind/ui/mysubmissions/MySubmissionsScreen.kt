@@ -111,9 +111,13 @@ fun SubmissionItem(submission: Submission) {
                 .fillMaxWidth()
                 .padding(16.dp),
             horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
+            verticalAlignment = Alignment.Top
         ) {
-            Column(modifier = Modifier.weight(1f)) {
+            Column(
+                modifier = Modifier
+                    .weight(1f)
+                    .padding(end = 16.dp)
+            ) {
                 Text(
                     text = submission.submittedApp.name,
                     style = MaterialTheme.typography.titleMedium,
@@ -125,7 +129,7 @@ fun SubmissionItem(submission: Submission) {
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
-                
+
                 if (submission.status == SubmissionStatus.REJECTED && !submission.rejectionReason.isNullOrBlank()) {
                     Spacer(modifier = Modifier.height(8.dp))
                     Surface(
@@ -179,7 +183,7 @@ fun StatusBadge(status: SubmissionStatus) {
 
     Surface(
         color = backgroundColor,
-        shape = MaterialTheme.shapes.small
+        shape = MaterialTheme.shapes.small,
     ) {
         Text(
             text = text,

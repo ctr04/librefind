@@ -39,5 +39,5 @@ interface AppRepository {
     // Kept from KnowledgeGraphRepo if needed, or can be refactored
     suspend fun checkDuplicateApp(name: String, packageName: String): Boolean
 
-    suspend fun getUserVote(packageName: String, userId: String): Int?
+    suspend fun getUserVote(packageName: String, userId: String): Map<String, Int?>
 }
