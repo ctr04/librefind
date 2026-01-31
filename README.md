@@ -64,6 +64,10 @@ The applications database grows entirely through **your contributions**.
 Please join the Telegram channel for further discussions.
 [Telegram](https://t.me/librefind)
 
+## Star History
+
+[![Star History Chart](https://api.star-history.com/svg?repos=jksalcedo/librefind&type=date&legend=top-left)](https://www.star-history.com/#jksalcedo/librefind&type=date&legend=top-left)
+
 ## License
 
 This project is licensed under the **MIT License** - see the [LICENSE](LICENSE)
