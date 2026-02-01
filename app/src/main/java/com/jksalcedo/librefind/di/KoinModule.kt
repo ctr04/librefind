@@ -5,8 +5,10 @@ import com.google.gson.Strictness
 import com.jksalcedo.librefind.data.local.AppDatabase
 import com.jksalcedo.librefind.data.local.InventorySource
 import com.jksalcedo.librefind.data.local.SafeSignatureDb
+import com.jksalcedo.librefind.data.repository.CacheRepositoryImpl
 import com.jksalcedo.librefind.data.repository.DeviceInventoryRepoImpl
 import com.jksalcedo.librefind.data.repository.IgnoredAppsRepositoryImpl
+import com.jksalcedo.librefind.domain.repository.CacheRepository
 import com.jksalcedo.librefind.domain.repository.DeviceInventoryRepo
 import com.jksalcedo.librefind.domain.repository.IgnoredAppsRepository
 import com.jksalcedo.librefind.domain.usecase.GetAlternativeUseCase
@@ -36,6 +38,7 @@ val appModule = module {
 
     single { AppDatabase.getInstance(androidContext()) }
     single { get<AppDatabase>().ignoredAppDao() }
+    single { get<AppDatabase>().appCacheDao() }
     single<IgnoredAppsRepository> { IgnoredAppsRepositoryImpl(get()) }
 }
 
@@ -60,7 +63,8 @@ val networkModule = module {
 }
 
 val repositoryModule = module {
-    single<DeviceInventoryRepo> { DeviceInventoryRepoImpl(get(), get(), get(), get()) }
+    single<CacheRepository> { CacheRepositoryImpl(get(), get()) }
+    single<DeviceInventoryRepo> { DeviceInventoryRepoImpl(get(), get(), get(), get(), get()) }
 }
 
 val useCaseModule = module {

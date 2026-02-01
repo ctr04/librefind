@@ -466,6 +466,22 @@ class SupabaseAppRepository(
         }
     }
 
+    override suspend fun getAlternativesCount(packageName: String): Int {
+        return try {
+            val target = supabase.postgrest.from("targets")
+                .select {
+                    filter {
+                        eq("package_name", packageName)
+                    }
+                }.decodeSingleOrNull<TargetDto>() ?: return 0
+
+            target.alternatives?.size ?: 0
+        } catch (e: Exception) {
+            e.printStackTrace()
+            0
+        }
+    }
+
     @Serializable
     private data class UserSubmissionWithProfileDto(
         val id: String? = null,
