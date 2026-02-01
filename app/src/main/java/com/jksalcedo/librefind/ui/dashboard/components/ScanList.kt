@@ -2,7 +2,6 @@ package com.jksalcedo.librefind.ui.dashboard.components
 
 import android.content.pm.PackageManager
 import android.graphics.Bitmap
-import android.graphics.drawable.Drawable
 import android.util.LruCache
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.Image
@@ -54,17 +53,25 @@ import kotlinx.coroutines.withContext
 
 object AppIconCache {
     private const val MAX_CACHE_SIZE = 50 * 1024 * 1024
-    
+
     private val cache = object : LruCache<String, Bitmap>(MAX_CACHE_SIZE) {
         override fun sizeOf(key: String, value: Bitmap): Int {
             return value.byteCount
         }
     }
-    
+
     fun get(packageName: String): Bitmap? = cache.get(packageName)
-    
+
     fun put(packageName: String, bitmap: Bitmap) {
         cache.put(packageName, bitmap)
+    }
+
+    fun getCacheSize(): Long {
+        return cache.size().toLong()
+    }
+
+    fun clearCache() {
+        cache.evictAll()
     }
 }
 
@@ -191,7 +198,7 @@ fun AppRow(
 }
 
 @Composable
-private fun AppIconAsync(
+internal fun AppIconAsync(
     packageName: String,
     modifier: Modifier = Modifier
 ) {
@@ -215,7 +222,7 @@ private fun AppIconAsync(
                     )
                     AppIconCache.put(packageName, bitmap)
                     bitmap
-                } catch (e: PackageManager.NameNotFoundException) {
+                } catch (_: PackageManager.NameNotFoundException) {
                     null
                 }
             }
