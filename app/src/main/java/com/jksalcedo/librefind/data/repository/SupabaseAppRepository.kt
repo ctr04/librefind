@@ -78,14 +78,16 @@ class SupabaseAppRepository(
                 val usabilityRating = dto.ratingUsability ?: 0f
                 val privacyRating = dto.ratingPrivacy ?: 0f
                 val featuresRating = dto.ratingFeatures ?: 0f
-                val ratingCount = dto.voteCount ?: 0
+                val rawRatingCount = dto.voteCount ?: 0
 
-                val ratingAvg = if (ratingCount > 0) {
+                val ratingAvg = if (rawRatingCount > 0) {
                     val sum = usabilityRating + privacyRating + featuresRating
                     val nonZeroCount =
                         listOf(usabilityRating, privacyRating, featuresRating).count { it > 0 }
                     if (nonZeroCount > 0) sum / nonZeroCount else 0f
                 } else 0f
+                
+                val ratingCount = if (ratingAvg == 0f) 0 else rawRatingCount
 
                 Alternative(
                     id = dto.packageName,
@@ -124,14 +126,16 @@ class SupabaseAppRepository(
             val usabilityRating = dto.ratingUsability ?: 0f
             val privacyRating = dto.ratingPrivacy ?: 0f
             val featuresRating = dto.ratingFeatures ?: 0f
-            val ratingCount = dto.voteCount ?: 0
+            val rawRatingCount = dto.voteCount ?: 0
 
-            val ratingAvg = if (ratingCount > 0) {
+            val ratingAvg = if (rawRatingCount > 0) {
                 val sum = usabilityRating + privacyRating + featuresRating
                 val nonZeroCount =
                     listOf(usabilityRating, privacyRating, featuresRating).count { it > 0 }
                 if (nonZeroCount > 0) sum / nonZeroCount else 0f
             } else 0f
+            
+            val ratingCount = if (ratingAvg == 0f) 0 else rawRatingCount
 
             Alternative(
                 id = dto.packageName,
@@ -432,14 +436,16 @@ class SupabaseAppRepository(
                 val usabilityRating = dto.ratingUsability ?: 0f
                 val privacyRating = dto.ratingPrivacy ?: 0f
                 val featuresRating = dto.ratingFeatures ?: 0f
-                val ratingCount = dto.voteCount ?: 0
+                val rawRatingCount = dto.voteCount ?: 0
 
-                val ratingAvg = if (ratingCount > 0) {
+                val ratingAvg = if (rawRatingCount > 0) {
                     val sum = usabilityRating + privacyRating + featuresRating
                     val nonZeroCount =
                         listOf(usabilityRating, privacyRating, featuresRating).count { it > 0 }
                     if (nonZeroCount > 0) sum / nonZeroCount else 0f
                 } else 0f
+                
+                val ratingCount = if (ratingAvg == 0f) 0 else rawRatingCount
 
                 Alternative(
                     id = dto.packageName,

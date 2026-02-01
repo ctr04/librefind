@@ -203,16 +203,15 @@ internal fun AppIconAsync(
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
-    var iconBitmap by remember(packageName) { mutableStateOf<Bitmap?>(null) }
-    var isLoading by remember(packageName) { mutableStateOf(true) }
+    var iconBitmap by remember(packageName) { 
+        mutableStateOf(AppIconCache.get(packageName))
+    }
+    var isLoading by remember(packageName) { 
+        mutableStateOf(AppIconCache.get(packageName) == null)
+    }
 
     LaunchedEffect(packageName) {
-        val cachedIcon = AppIconCache.get(packageName)
-        if (cachedIcon != null) {
-            iconBitmap = cachedIcon
-            isLoading = false
-        } else {
-            isLoading = true
+        if (iconBitmap == null) {
             iconBitmap = withContext(Dispatchers.IO) {
                 try {
                     val drawable = context.packageManager.getApplicationIcon(packageName)
