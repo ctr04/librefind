@@ -3,10 +3,14 @@ package com.jksalcedo.librefind.data.repository
 import android.util.Log
 import com.jksalcedo.librefind.data.remote.model.ProfileDto
 import com.jksalcedo.librefind.data.remote.model.SolutionDto
-import com.jksalcedo.librefind.data.remote.model.TargetDto
+import com.jksalcedo.librefind.data.remote.model.UserReportDto
 import com.jksalcedo.librefind.data.remote.model.UserSubmissionDto
 import com.jksalcedo.librefind.data.remote.model.UserVoteDto
 import com.jksalcedo.librefind.domain.model.Alternative
+import com.jksalcedo.librefind.domain.model.Report
+import com.jksalcedo.librefind.domain.model.ReportPriority
+import com.jksalcedo.librefind.domain.model.ReportStatus
+import com.jksalcedo.librefind.domain.model.ReportType
 import com.jksalcedo.librefind.domain.model.Submission
 import com.jksalcedo.librefind.domain.model.SubmissionStatus
 import com.jksalcedo.librefind.domain.model.SubmissionType
@@ -25,16 +29,42 @@ class SupabaseAppRepository(
     private val supabase: SupabaseClient
 ) : AppRepository {
 
+    override suspend fun areProprietary(packageNames: List<String>): Map<String, Boolean> {
+        if (packageNames.isEmpty()) return emptyMap()
+
+        return try {
+            val uniquePackages = packageNames.distinct()
+            val foundPackages = mutableSetOf<String>()
+            val chunkSize = 200
+
+            uniquePackages.chunked(chunkSize).forEach { chunk ->
+                val found = supabase.postgrest.from("targets")
+                    .select(columns = Columns.list("package_name")) {
+                        filter { isIn("package_name", chunk) }
+                    }
+                    .decodeList<PackageNameDto>()
+                    .map { it.packageName }
+
+                foundPackages.addAll(found)
+            }
+
+            packageNames.associateWith { foundPackages.contains(it) }
+        } catch (e: Exception) {
+            e.printStackTrace()
+            emptyMap()
+        }
+    }
+
     override suspend fun isProprietary(packageName: String): Boolean {
         return try {
             val count = supabase.postgrest.from("targets")
-                .select {
+                .select(columns = Columns.list("package_name")) {
                     count(Count.EXACT)
-                    filter {
-                        eq("package_name", packageName)
-                    }
-                }.countOrNull()
-            (count ?: 0) > 0
+                    filter { eq("package_name", packageName) }
+                    limit(1)
+                }.countOrNull() ?: 0
+
+            count > 0
         } catch (_: Exception) {
             false
         }
@@ -43,13 +73,13 @@ class SupabaseAppRepository(
     override suspend fun isSolution(packageName: String): Boolean {
         return try {
             val count = supabase.postgrest.from("solutions")
-                .select {
+                .select(columns = Columns.list("package_name")) {
                     count(Count.EXACT)
-                    filter {
-                        eq("package_name", packageName)
-                    }
-                }.countOrNull()
-            (count ?: 0) > 0
+                    filter { eq("package_name", packageName) }
+                    limit(1)
+                }.countOrNull() ?: 0
+
+            count > 0
         } catch (_: Exception) {
             false
         }
@@ -62,18 +92,20 @@ class SupabaseAppRepository(
                     filter {
                         eq("package_name", packageName)
                     }
-                }.decodeSingleOrNull<TargetDto>() ?: return emptyList()
+                }.decodeSingleOrNull<TargetAlternativesDto>() ?: return emptyList()
 
-            if (target.alternatives.orEmpty().isEmpty()) return emptyList()
+            if (target.alternatives.isNullOrEmpty()) return emptyList()
 
             val solutions = supabase.postgrest.from("solutions")
-                .select(columns = Columns.list(
-                    "package_name", "name", "license", "repo_url", "fdroid_id", 
-                    "icon_url", "description", "features", "pros", "cons",
-                    "rating_usability", "rating_privacy", "rating_features", "vote_count"
-                )) {
+                .select(
+                    columns = Columns.list(
+                        "package_name", "name", "license", "repo_url", "fdroid_id",
+                        "icon_url", "description", "features", "pros", "cons",
+                        "rating_usability", "rating_privacy", "rating_features", "vote_count"
+                    )
+                ) {
                     filter {
-                        isIn("package_name", target.alternatives.orEmpty())
+                        isIn("package_name", target.alternatives!!)
                     }
                 }.decodeList<SolutionDto>()
 
@@ -89,7 +121,7 @@ class SupabaseAppRepository(
                         listOf(usabilityRating, privacyRating, featuresRating).count { it > 0 }
                     if (nonZeroCount > 0) sum / nonZeroCount else 0f
                 } else 0f
-                
+
                 val ratingCount = if (ratingAvg == 0f) 0 else rawRatingCount
 
                 Alternative(
@@ -120,11 +152,13 @@ class SupabaseAppRepository(
     override suspend fun getAlternative(packageName: String): Alternative? {
         return try {
             val dto = supabase.postgrest.from("solutions")
-                .select(columns = Columns.list(
-                    "package_name", "name", "license", "repo_url", "fdroid_id", 
-                    "icon_url", "description", "features", "pros", "cons",
-                    "rating_usability", "rating_privacy", "rating_features", "vote_count"
-                )) {
+                .select(
+                    columns = Columns.list(
+                        "package_name", "name", "license", "repo_url", "fdroid_id",
+                        "icon_url", "description", "features", "pros", "cons",
+                        "rating_usability", "rating_privacy", "rating_features", "vote_count"
+                    )
+                ) {
                     filter {
                         eq("package_name", packageName)
                     }
@@ -141,7 +175,7 @@ class SupabaseAppRepository(
                     listOf(usabilityRating, privacyRating, featuresRating).count { it > 0 }
                 if (nonZeroCount > 0) sum / nonZeroCount else 0f
             } else 0f
-            
+
             val ratingCount = if (ratingAvg == 0f) 0 else rawRatingCount
 
             Alternative(
@@ -169,6 +203,9 @@ class SupabaseAppRepository(
 
     @Serializable
     private data class PackageNameDto(@SerialName("package_name") val packageName: String)
+
+    @Serializable
+    private data class TargetAlternativesDto(val alternatives: List<String>? = null)
 
     override suspend fun getProprietaryTargets(): List<String> {
         return try {
@@ -352,10 +389,23 @@ class SupabaseAppRepository(
     override suspend fun getMySubmissions(userId: String): List<Submission> {
         return try {
             val result = supabase.postgrest.from("user_submissions")
-                .select(columns = Columns.list("*, profiles(id, username)")) {
-                    filter {
-                        eq("submitter_id", userId)
-                    }
+                .select(
+                    columns = Columns.list(
+                        "id",
+                        "app_name",
+                        "app_package",
+                        "description",
+                        "proprietary_package",
+                        "repo_url",
+                        "fdroid_id",
+                        "license",
+                        "status",
+                        "submitter_id",
+                        "rejection_reason",
+                        "profiles(id, username)"
+                    )
+                ) {
+                    filter { eq("submitter_id", userId) }
                 }
 
             val submissions = result.decodeList<UserSubmissionWithProfileDto>()
@@ -363,7 +413,10 @@ class SupabaseAppRepository(
             submissions.map { dto ->
                 Submission(
                     id = dto.id ?: "",
-                    type = if (!dto.license.isNullOrBlank() || !dto.repoUrl.isNullOrBlank()) SubmissionType.NEW_ALTERNATIVE else SubmissionType.NEW_PROPRIETARY,
+                    type = if (!dto.license.isNullOrBlank() || !dto.repoUrl.isNullOrBlank())
+                        SubmissionType.NEW_ALTERNATIVE
+                    else
+                        SubmissionType.NEW_PROPRIETARY,
                     proprietaryPackages = dto.proprietaryPackage ?: "",
                     submittedApp = SubmittedApp(
                         name = dto.appName,
@@ -415,13 +468,27 @@ class SupabaseAppRepository(
     }
 
     override suspend fun checkDuplicateApp(name: String, packageName: String): Boolean {
-        val inSolutions = supabase.postgrest.from("solutions")
-            .select { count(Count.EXACT); filter { eq("package_name", packageName) } }.countOrNull()
-            ?: 0
-        val inTargets = supabase.postgrest.from("targets")
-            .select { count(Count.EXACT); filter { eq("package_name", packageName) } }.countOrNull()
-            ?: 0
-        return inSolutions > 0 || inTargets > 0
+        return try {
+            val solutionsCount = supabase.postgrest.from("solutions")
+                .select(columns = Columns.list("package_name")) {
+                    count(Count.EXACT)
+                    filter { eq("package_name", packageName) }
+                    limit(1)
+                }.countOrNull() ?: 0
+
+            if (solutionsCount > 0) return true
+
+            val targetsCount = supabase.postgrest.from("targets")
+                .select(columns = Columns.list("package_name")) {
+                    count(Count.EXACT)
+                    filter { eq("package_name", packageName) }
+                    limit(1)
+                }.countOrNull() ?: 0
+
+            targetsCount > 0
+        } catch (_: Exception) {
+            false
+        }
     }
 
     override suspend fun searchSolutions(query: String, limit: Int): List<Alternative> {
@@ -429,11 +496,13 @@ class SupabaseAppRepository(
 
         return try {
             val solutions = supabase.postgrest.from("solutions")
-                .select(columns = Columns.list(
-                    "package_name", "name", "license", "repo_url", "fdroid_id", 
-                    "icon_url", "description", "features", "pros", "cons",
-                    "rating_usability", "rating_privacy", "rating_features", "vote_count"
-                )) {
+                .select(
+                    columns = Columns.list(
+                        "package_name", "name", "license", "repo_url", "fdroid_id",
+                        "icon_url", "description", "features", "pros", "cons",
+                        "rating_usability", "rating_privacy", "rating_features", "vote_count"
+                    )
+                ) {
                     filter {
                         or {
                             ilike("name", "%$query%")
@@ -455,7 +524,7 @@ class SupabaseAppRepository(
                         listOf(usabilityRating, privacyRating, featuresRating).count { it > 0 }
                     if (nonZeroCount > 0) sum / nonZeroCount else 0f
                 } else 0f
-                
+
                 val ratingCount = if (ratingAvg == 0f) 0 else rawRatingCount
 
                 Alternative(
@@ -490,7 +559,7 @@ class SupabaseAppRepository(
                     filter {
                         eq("package_name", packageName)
                     }
-                }.decodeSingleOrNull<TargetDto>() ?: return 0
+                }.decodeSingleOrNull<TargetAlternativesDto>() ?: return 0
 
             target.alternatives?.size ?: 0
         } catch (e: Exception) {
@@ -513,6 +582,73 @@ class SupabaseAppRepository(
         @SerialName("submitter_id") val submitterId: String,
         @SerialName("created_at") val createdAt: String? = null,
         @SerialName("rejection_reason") val rejectionReason: String? = null,
-        @SerialName("profiles") val profile: ProfileDto? = null // Joined table
+        @SerialName("profiles") val profile: ProfileDto? = null
+    )
+
+    override suspend fun submitReport(
+        title: String,
+        description: String,
+        type: String,
+        priority: String,
+        userId: String
+    ): Result<Unit> = runCatching {
+        val report = UserReportDto(
+            title = title,
+            description = description,
+            reportType = type,
+            priority = priority,
+            submitterId = userId
+        )
+        supabase.postgrest.from("user_reports").insert(report)
+    }
+
+    override suspend fun getMyReports(userId: String): List<Report> {
+        return try {
+            val result = supabase.postgrest.from("user_reports")
+                .select(
+                    columns = Columns.list(
+                        "id", "title", "description", "report_type",
+                        "status", "priority", "submitter_id",
+                        "admin_response", "resolved_at", "created_at",
+                        "profiles(id, username)"
+                    )
+                ) {
+                    filter { eq("submitter_id", userId) }
+                    order("created_at", io.github.jan.supabase.postgrest.query.Order.DESCENDING)
+                }
+
+            result.decodeList<UserReportWithProfileDto>().map { dto ->
+                Report(
+                    id = dto.id ?: "",
+                    title = dto.title,
+                    description = dto.description,
+                    type = try { ReportType.valueOf(dto.reportType) } catch (_: Exception) { ReportType.OTHER },
+                    status = try { ReportStatus.valueOf(dto.status) } catch (_: Exception) { ReportStatus.OPEN },
+                    priority = try { ReportPriority.valueOf(dto.priority) } catch (_: Exception) { ReportPriority.LOW },
+                    submitterUid = dto.submitterId,
+                    submitterUsername = dto.profile?.username ?: "Unknown",
+                    adminResponse = dto.adminResponse
+                )
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
+            emptyList()
+        }
+    }
+
+    @Serializable
+    private data class UserReportWithProfileDto(
+        val id: String? = null,
+        val title: String,
+        val description: String,
+        @SerialName("report_type") val reportType: String,
+        val status: String = "OPEN",
+        val priority: String = "LOW",
+        @SerialName("submitter_id") val submitterId: String,
+        @SerialName("admin_response") val adminResponse: String? = null,
+        @SerialName("resolved_at") val resolvedAt: String? = null,
+        @SerialName("created_at") val createdAt: String? = null,
+        @SerialName("profiles") val profile: ProfileDto? = null
     )
 }
+

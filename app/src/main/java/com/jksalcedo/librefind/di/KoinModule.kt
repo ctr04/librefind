@@ -19,6 +19,8 @@ import com.jksalcedo.librefind.ui.dashboard.DashboardViewModel
 import com.jksalcedo.librefind.ui.details.AlternativeDetailViewModel
 import com.jksalcedo.librefind.ui.details.DetailsViewModel
 import com.jksalcedo.librefind.ui.mysubmissions.MySubmissionsViewModel
+import com.jksalcedo.librefind.ui.reports.MyReportsViewModel
+import com.jksalcedo.librefind.ui.reports.ReportViewModel
 import com.jksalcedo.librefind.ui.settings.IgnoredAppsViewModel
 import com.jksalcedo.librefind.ui.settings.SettingsViewModel
 import com.jksalcedo.librefind.ui.submit.SubmitViewModel
@@ -86,6 +88,8 @@ val viewModelModule = module {
     viewModel { MySubmissionsViewModel(get(), get()) }
     viewModel { IgnoredAppsViewModel(get(), get()) }
     viewModel { SettingsViewModel(get()) }
+    viewModel { ReportViewModel(get(), get()) }
+    viewModel { MyReportsViewModel(get(), get()) }
 }
 
 

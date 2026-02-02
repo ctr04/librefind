@@ -1,14 +1,27 @@
 package com.jksalcedo.librefind.domain.repository
 
 import com.jksalcedo.librefind.domain.model.Alternative
+import com.jksalcedo.librefind.domain.model.Report
 import com.jksalcedo.librefind.domain.model.Submission
 
 interface AppRepository {
+
+    suspend fun areProprietary(packageNames: List<String>): Map<String, Boolean>
     suspend fun isProprietary(packageName: String): Boolean
     suspend fun isSolution(packageName: String): Boolean
     suspend fun getAlternatives(packageName: String): List<Alternative>
     suspend fun getAlternative(packageName: String): Alternative?
     suspend fun getProprietaryTargets(): List<String>
+
+    suspend fun submitReport(
+        title: String,
+        description: String,
+        type: String,
+        priority: String,
+        userId: String
+    ): Result<Unit>
+
+    suspend fun getMyReports(userId: String): List<Report>
 
     suspend fun submitAlternative(
         proprietaryPackage: String,

@@ -2,7 +2,6 @@ package com.jksalcedo.librefind.data.remote.model
 
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
-import kotlinx.serialization.json.JsonElement
 
 @Serializable
 data class SolutionDto(
@@ -22,15 +21,6 @@ data class SolutionDto(
     @SerialName("rating_features") val ratingFeatures: Float? = 0f,
     @SerialName("vote_count") val voteCount: Int? = 0,
     @SerialName("created_at") val createdAt: String? = null
-)
-
-@Serializable
-data class TargetDto(
-    @SerialName("package_name") val packageName: String,
-    val name: String,
-    val category: String? = null,
-    @SerialName("icon_url") val iconUrl: String,
-    val alternatives: List<String>? = emptyList() // Array of package_names
 )
 
 @Serializable
@@ -66,4 +56,18 @@ data class UserVoteDto(
     @SerialName("package_name") val packageName: String,
     @SerialName("vote_type") val voteType: String,
     val value: Int
+)
+
+@Serializable
+data class UserReportDto(
+    val id: String? = null,
+    val title: String,
+    val description: String,
+    @SerialName("report_type") val reportType: String,
+    val status: String = "OPEN",
+    val priority: String = "LOW",
+    @SerialName("submitter_id") val submitterId: String,
+    @SerialName("admin_response") val adminResponse: String? = null,
+    @SerialName("resolved_at") val resolvedAt: String? = null,
+    @SerialName("created_at") val createdAt: String? = null
 )

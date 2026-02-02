@@ -17,7 +17,9 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.BugReport
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Feedback
 import androidx.compose.material.icons.filled.Group
+import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -50,6 +52,8 @@ import org.koin.androidx.compose.koinViewModel
 @Composable
 fun SettingsScreen(
     onBackClick: () -> Unit,
+    onReportClick: () -> Unit = {},
+    onMyReportsClick: () -> Unit = {},
     viewModel: SettingsViewModel = koinViewModel()
 ) {
     val state by viewModel.state.collectAsState()
@@ -169,12 +173,34 @@ fun SettingsScreen(
                     Spacer(modifier = Modifier.height(12.dp))
 
                     OutlinedButton(
+                        onClick = onReportClick,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Icon(Icons.Default.Feedback, contentDescription = null)
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text("Report Issue / Suggestion")
+                    }
+
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    OutlinedButton(
+                        onClick = onMyReportsClick,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Icon(Icons.Default.History, contentDescription = null)
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text("My Reports")
+                    }
+
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    OutlinedButton(
                         onClick = { uriHandler.openUri("https://github.com/jksalcedo/librefind/issues") },
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         Icon(Icons.Default.BugReport, contentDescription = null)
                         Spacer(modifier = Modifier.width(8.dp))
-                        Text("Report a Bug")
+                        Text("GitHub Issues")
                     }
 
                     Spacer(modifier = Modifier.height(8.dp))
