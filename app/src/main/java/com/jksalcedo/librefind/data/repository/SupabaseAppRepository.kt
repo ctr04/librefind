@@ -3,9 +3,14 @@ package com.jksalcedo.librefind.data.repository
 import android.util.Log
 import com.jksalcedo.librefind.data.remote.model.ProfileDto
 import com.jksalcedo.librefind.data.remote.model.SolutionDto
+import com.jksalcedo.librefind.data.remote.model.UserReportDto
 import com.jksalcedo.librefind.data.remote.model.UserSubmissionDto
 import com.jksalcedo.librefind.data.remote.model.UserVoteDto
 import com.jksalcedo.librefind.domain.model.Alternative
+import com.jksalcedo.librefind.domain.model.Report
+import com.jksalcedo.librefind.domain.model.ReportPriority
+import com.jksalcedo.librefind.domain.model.ReportStatus
+import com.jksalcedo.librefind.domain.model.ReportType
 import com.jksalcedo.librefind.domain.model.Submission
 import com.jksalcedo.librefind.domain.model.SubmissionStatus
 import com.jksalcedo.librefind.domain.model.SubmissionType
@@ -577,6 +582,73 @@ class SupabaseAppRepository(
         @SerialName("submitter_id") val submitterId: String,
         @SerialName("created_at") val createdAt: String? = null,
         @SerialName("rejection_reason") val rejectionReason: String? = null,
-        @SerialName("profiles") val profile: ProfileDto? = null // Joined table
+        @SerialName("profiles") val profile: ProfileDto? = null
+    )
+
+    override suspend fun submitReport(
+        title: String,
+        description: String,
+        type: String,
+        priority: String,
+        userId: String
+    ): Result<Unit> = runCatching {
+        val report = UserReportDto(
+            title = title,
+            description = description,
+            reportType = type,
+            priority = priority,
+            submitterId = userId
+        )
+        supabase.postgrest.from("user_reports").insert(report)
+    }
+
+    override suspend fun getMyReports(userId: String): List<Report> {
+        return try {
+            val result = supabase.postgrest.from("user_reports")
+                .select(
+                    columns = Columns.list(
+                        "id", "title", "description", "report_type",
+                        "status", "priority", "submitter_id",
+                        "admin_response", "resolved_at", "created_at",
+                        "profiles(id, username)"
+                    )
+                ) {
+                    filter { eq("submitter_id", userId) }
+                    order("created_at", io.github.jan.supabase.postgrest.query.Order.DESCENDING)
+                }
+
+            result.decodeList<UserReportWithProfileDto>().map { dto ->
+                Report(
+                    id = dto.id ?: "",
+                    title = dto.title,
+                    description = dto.description,
+                    type = try { ReportType.valueOf(dto.reportType) } catch (_: Exception) { ReportType.OTHER },
+                    status = try { ReportStatus.valueOf(dto.status) } catch (_: Exception) { ReportStatus.OPEN },
+                    priority = try { ReportPriority.valueOf(dto.priority) } catch (_: Exception) { ReportPriority.LOW },
+                    submitterUid = dto.submitterId,
+                    submitterUsername = dto.profile?.username ?: "Unknown",
+                    adminResponse = dto.adminResponse
+                )
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
+            emptyList()
+        }
+    }
+
+    @Serializable
+    private data class UserReportWithProfileDto(
+        val id: String? = null,
+        val title: String,
+        val description: String,
+        @SerialName("report_type") val reportType: String,
+        val status: String = "OPEN",
+        val priority: String = "LOW",
+        @SerialName("submitter_id") val submitterId: String,
+        @SerialName("admin_response") val adminResponse: String? = null,
+        @SerialName("resolved_at") val resolvedAt: String? = null,
+        @SerialName("created_at") val createdAt: String? = null,
+        @SerialName("profiles") val profile: ProfileDto? = null
     )
 }
+

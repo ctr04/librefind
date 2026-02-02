@@ -16,6 +16,8 @@ import org.koin.androidx.compose.koinViewModel
 import com.jksalcedo.librefind.ui.details.AlternativeDetailScreen
 import com.jksalcedo.librefind.ui.details.DetailsScreen
 import com.jksalcedo.librefind.ui.mysubmissions.MySubmissionsScreen
+import com.jksalcedo.librefind.ui.reports.MyReportsScreen
+import com.jksalcedo.librefind.ui.reports.ReportScreen
 import com.jksalcedo.librefind.ui.settings.IgnoredAppsScreen
 import com.jksalcedo.librefind.ui.submit.SubmitScreen
 
@@ -181,7 +183,41 @@ fun NavGraph(
         }
 
         composable(Route.Settings.route) {
+            val authViewModel: AuthViewModel = koinViewModel()
+            val authState by authViewModel.uiState.collectAsState()
+
             com.jksalcedo.librefind.ui.settings.SettingsScreen(
+                onBackClick = { navController.navigateUp() },
+                onReportClick = {
+                    if (authState.isSignedIn) {
+                        navController.navigate(Route.Report.route)
+                    } else {
+                        navController.navigate(Route.Auth.route)
+                    }
+                },
+                onMyReportsClick = {
+                    if (authState.isSignedIn) {
+                        navController.navigate(Route.MyReports.route)
+                    } else {
+                        navController.navigate(Route.Auth.route)
+                    }
+                }
+            )
+        }
+
+        composable(Route.Report.route) {
+            ReportScreen(
+                onBackClick = { navController.navigateUp() },
+                onSuccess = {
+                    navController.navigate(Route.Dashboard.route) {
+                        popUpTo(Route.Dashboard.route) { inclusive = true }
+                    }
+                }
+            )
+        }
+
+        composable(Route.MyReports.route) {
+            MyReportsScreen(
                 onBackClick = { navController.navigateUp() }
             )
         }

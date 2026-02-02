@@ -1,6 +1,7 @@
 package com.jksalcedo.librefind.domain.repository
 
 import com.jksalcedo.librefind.domain.model.Alternative
+import com.jksalcedo.librefind.domain.model.Report
 import com.jksalcedo.librefind.domain.model.Submission
 
 interface AppRepository {
@@ -11,6 +12,16 @@ interface AppRepository {
     suspend fun getAlternatives(packageName: String): List<Alternative>
     suspend fun getAlternative(packageName: String): Alternative?
     suspend fun getProprietaryTargets(): List<String>
+
+    suspend fun submitReport(
+        title: String,
+        description: String,
+        type: String,
+        priority: String,
+        userId: String
+    ): Result<Unit>
+
+    suspend fun getMyReports(userId: String): List<Report>
 
     suspend fun submitAlternative(
         proprietaryPackage: String,

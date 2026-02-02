@@ -3,14 +3,17 @@ package com.jksalcedo.librefind.ui.navigation
 sealed class Route(val route: String) {
     data object Dashboard : Route("dashboard")
     data object Details : Route("details/{appName}/{packageName}") {
-        fun createRoute(appName: String ,packageName: String) = "details/$appName/$packageName"
+        fun createRoute(appName: String, packageName: String) = "details/$appName/$packageName"
     }
+
     data object AlternativeDetail : Route("alternative/{altId}") {
         fun createRoute(altId: String) = "alternative/$altId"
     }
+
     data object Auth : Route("auth")
     data object ProfileSetup : Route("profile_setup")
-    data object Submit : Route("submit?appName={appName}&packageName={packageName}&type={type}&submissionId={submissionId}") {
+    data object Submit :
+        Route("submit?appName={appName}&packageName={packageName}&type={type}&submissionId={submissionId}") {
         fun createRoute(
             appName: String? = null,
             packageName: String? = null,
@@ -26,9 +29,12 @@ sealed class Route(val route: String) {
             return if (params.isEmpty()) "submit" else "submit?${params.joinToString("&")}"
         }
     }
+
     data object MySubmissions : Route("my_submissions")
     data object IgnoredApps : Route("ignored_apps")
     data object Settings : Route("settings")
+    data object Report : Route("report")
+    data object MyReports : Route("my_reports")
 }
 
 
