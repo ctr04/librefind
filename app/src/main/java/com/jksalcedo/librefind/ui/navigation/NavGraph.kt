@@ -6,9 +6,13 @@ import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import com.jksalcedo.librefind.ui.auth.AuthScreen
+import com.jksalcedo.librefind.ui.auth.AuthViewModel
 import com.jksalcedo.librefind.ui.auth.ProfileSetupScreen
 import com.jksalcedo.librefind.ui.dashboard.DashboardScreen
+import org.koin.androidx.compose.koinViewModel
 import com.jksalcedo.librefind.ui.details.AlternativeDetailScreen
 import com.jksalcedo.librefind.ui.details.DetailsScreen
 import com.jksalcedo.librefind.ui.mysubmissions.MySubmissionsScreen
@@ -24,12 +28,19 @@ fun NavGraph(
         startDestination = Route.Dashboard.route
     ) {
         composable(Route.Dashboard.route) {
+            val authViewModel: AuthViewModel = koinViewModel()
+            val authState by authViewModel.uiState.collectAsState()
+            
             DashboardScreen(
                 onAppClick = { appName, packageName ->
                     navController.navigate(Route.Details.createRoute(appName, packageName))
                 },
                 onSubmitClick = {
-                    navController.navigate(Route.Auth.route)
+                    if (authState.isSignedIn) {
+                        navController.navigate(Route.Submit.createRoute())
+                    } else {
+                        navController.navigate(Route.Auth.route)
+                    }
                 },
                 onMySubmissionsClick = {
                     navController.navigate(Route.MySubmissions.route)
@@ -87,7 +98,7 @@ fun NavGraph(
                             popUpTo(Route.Auth.route) { inclusive = true }
                         }
                     } else {
-                        navController.navigate(Route.Dashboard.route) {
+                        navController.navigate(Route.Submit.createRoute()) {
                             popUpTo(Route.Auth.route) { inclusive = true }
                         }
                     }
@@ -98,7 +109,7 @@ fun NavGraph(
         composable(Route.ProfileSetup.route) {
             ProfileSetupScreen(
                 onProfileComplete = {
-                    navController.navigate(Route.Dashboard.route) {
+                    navController.navigate(Route.Submit.createRoute()) {
                         popUpTo(Route.ProfileSetup.route) { inclusive = true }
                     }
                 }
