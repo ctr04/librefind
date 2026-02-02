@@ -180,7 +180,7 @@ fun SubmitScreen(
                 FilterChip(
                     selected = type == SubmissionType.NEW_ALTERNATIVE,
                     onClick = { type = SubmissionType.NEW_ALTERNATIVE },
-                    label = { Text("FOSS Alternative") }
+                    label = { Text("FOSS App") }
                 )
                 FilterChip(
                     selected = type == SubmissionType.NEW_PROPRIETARY,
@@ -523,50 +523,50 @@ fun SubmitScreen(
                         }
                     )
                 }
-
-                uiState.error?.let { error ->
-                    Text(
-                        text = error,
-                        color = MaterialTheme.colorScheme.error,
-                        style = MaterialTheme.typography.bodySmall
-                    )
-                }
-
-                Spacer(modifier = Modifier.height(8.dp))
-
-                Button(
-                    onClick = {
-                        viewModel.submit(
-                            type = type,
-                            appName = appName,
-                            packageName = packageName,
-                            description = description,
-                            repoUrl = repoUrl,
-                            fdroidId = fdroidId,
-                            license = license,
-                            proprietaryPackages = selectedProprietaryPackages.joinToString(", ")
-                        )
-                    },
-                    enabled = appName.isNotBlank() &&
-                            packageName.isNotBlank() &&
-                            !uiState.isLoading &&
-                            uiState.packageNameError == null &&
-                            uiState.repoUrlError == null &&
-                            (type == SubmissionType.NEW_PROPRIETARY || (repoUrl.isNotBlank() && license.isNotBlank())),
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    if (uiState.isLoading) {
-                        CircularProgressIndicator(
-                            modifier = Modifier.size(20.dp),
-                            strokeWidth = 2.dp
-                        )
-                    } else {
-                        Text(if (uiState.isEditing) "Update Submission" else "Submit for Review")
-                    }
-                }
-
-                Spacer(modifier = Modifier.height(16.dp))
             }
+
+            uiState.error?.let { error ->
+                Text(
+                    text = error,
+                    color = MaterialTheme.colorScheme.error,
+                    style = MaterialTheme.typography.bodySmall
+                )
+            }
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            Button(
+                onClick = {
+                    viewModel.submit(
+                        type = type,
+                        appName = appName,
+                        packageName = packageName,
+                        description = description,
+                        repoUrl = repoUrl,
+                        fdroidId = fdroidId,
+                        license = license,
+                        proprietaryPackages = selectedProprietaryPackages.joinToString(", ")
+                    )
+                },
+                enabled = appName.isNotBlank() &&
+                        packageName.isNotBlank() &&
+                        !uiState.isLoading &&
+                        uiState.packageNameError == null &&
+                        uiState.repoUrlError == null &&
+                        (type == SubmissionType.NEW_PROPRIETARY || (repoUrl.isNotBlank() && license.isNotBlank())),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                if (uiState.isLoading) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(20.dp),
+                        strokeWidth = 2.dp
+                    )
+                } else {
+                    Text(if (uiState.isEditing) "Update Submission" else "Submit for Review")
+                }
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
         }
     }
 }
