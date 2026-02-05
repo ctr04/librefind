@@ -15,6 +15,8 @@ import androidx.compose.material.icons.filled.AccountCircle
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
+
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.CloudUpload
 import androidx.compose.material.icons.filled.FilterList
 import androidx.compose.material.icons.filled.NewReleases
@@ -453,6 +455,7 @@ fun DashboardScreen(
                                         Text("Settings")
                                     }
 
+
                                     Spacer(modifier = Modifier.height(8.dp))
 
                                     OutlinedButton(
@@ -514,6 +517,7 @@ fun DashboardScreen(
                     }
                 }
             }
+
 
             if (showTutorial && currentTutorialStep != null && !state.isLoading) {
                 TutorialOverlay(
