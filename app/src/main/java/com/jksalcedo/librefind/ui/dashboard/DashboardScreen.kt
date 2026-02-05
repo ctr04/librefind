@@ -17,7 +17,7 @@ import androidx.compose.material.icons.filled.AccountCircle
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.BugReport
 import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.NewReleases
+
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.CloudUpload
 import androidx.compose.material.icons.filled.FilterList
@@ -64,7 +64,6 @@ import com.jksalcedo.librefind.ui.auth.AuthViewModel
 import com.jksalcedo.librefind.ui.dashboard.components.GaugeDetailsDialog
 import com.jksalcedo.librefind.ui.dashboard.components.ScanList
 import com.jksalcedo.librefind.ui.dashboard.components.SovereigntyGauge
-import com.jksalcedo.librefind.ui.common.ChangelogDialog
 import org.koin.androidx.compose.koinViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -83,12 +82,7 @@ fun DashboardScreen(
     val context = LocalContext.current
     var showDialog by remember { mutableStateOf(false) }
     var showProfileDialog by remember { mutableStateOf(false) }
-    var showChangelog by remember { mutableStateOf(false) }
     var isSearchActive by remember { mutableStateOf(false) }
-    
-    val (changelogVersion, changelogText) = remember {
-        com.jksalcedo.librefind.ui.common.ChangelogReader.readChangelog(context)
-    }
 
     Scaffold(
         topBar = {
@@ -333,17 +327,7 @@ fun DashboardScreen(
 
                                  Spacer(modifier = Modifier.height(8.dp))
 
-                                 OutlinedButton(
-                                     onClick = {
-                                         showProfileDialog = false
-                                         showChangelog = true
-                                     },
-                                     modifier = Modifier.fillMaxWidth()
-                                 ) {
-                                     Icon(Icons.Default.NewReleases, contentDescription = null)
-                                     Spacer(modifier = Modifier.width(8.dp))
-                                     Text("What's New")
-                                 }
+
 
                                  Spacer(modifier = Modifier.height(8.dp))
 
@@ -406,13 +390,7 @@ fun DashboardScreen(
                 }
             }
 
-            if (showChangelog) {
-                ChangelogDialog(
-                    version = changelogVersion,
-                    changelog = changelogText,
-                    onDismiss = { showChangelog = false }
-                )
-            }
+
         }
     }
 }
