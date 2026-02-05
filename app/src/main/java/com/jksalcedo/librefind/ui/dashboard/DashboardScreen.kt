@@ -15,13 +15,12 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ExitToApp
 import androidx.compose.material.icons.filled.AccountCircle
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.BugReport
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.NewReleases
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.CloudUpload
 import androidx.compose.material.icons.filled.FilterList
-import androidx.compose.material.icons.filled.Group
+import androidx.compose.material.icons.filled.NewReleases
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material3.AlertDialog
@@ -83,12 +82,8 @@ fun DashboardScreen(
     val context = LocalContext.current
     var showDialog by remember { mutableStateOf(false) }
     var showProfileDialog by remember { mutableStateOf(false) }
-    var showChangelog by remember { mutableStateOf(false) }
+    var showFilterMenu by remember { mutableStateOf(false) }
     var isSearchActive by remember { mutableStateOf(false) }
-    
-    val (changelogVersion, changelogText) = remember {
-        com.jksalcedo.librefind.ui.common.ChangelogReader.readChangelog(context)
-    }
 
     Scaffold(
         topBar = {
@@ -128,24 +123,97 @@ fun DashboardScreen(
                         IconButton(onClick = { isSearchActive = true }) {
                             Icon(Icons.Default.Search, contentDescription = "Search")
                         }
-//                        IconButton(onClick = { showFilter = true }) {
-//                            Icon(Icons.Default.FilterList, contentDescription = "Filter List")
-//                            DropdownMenu(
-//                                expanded = showFilter,
-//                                onDismissRequest = { showFilter = false}
-//                            ) {
-//                                DropdownMenuItem(
-//                                    text = { Text("") },
-//                                    onClick = {
-//                                        showFilter = false
-//                                        ()
-//                                    },
-//                                    leadingIcon = {
-//                                        Icon(Icons.Default.VisibilityOff, contentDescription = null)
-//                                    }
-//                                )
-//                            }
-//                        }
+                        Box {
+                            IconButton(onClick = { showFilterMenu = true }) {
+                                Icon(
+                                    Icons.Default.FilterList,
+                                    contentDescription = "Filter",
+                                    tint = if (state.appFilter != AppFilter.ALL) 
+                                        MaterialTheme.colorScheme.primary 
+                                    else 
+                                        MaterialTheme.colorScheme.onSurface
+                                )
+                            }
+                            DropdownMenu(
+                                expanded = showFilterMenu,
+                                onDismissRequest = { showFilterMenu = false }
+                            ) {
+                                DropdownMenuItem(
+                                    text = { Text("Show All") },
+                                    onClick = {
+                                        viewModel.setAppFilter(AppFilter.ALL)
+                                        showFilterMenu = false
+                                    },
+                                    leadingIcon = {
+                                        if (state.appFilter == AppFilter.ALL) {
+                                            Icon(Icons.Default.Check, contentDescription = null)
+                                        }
+                                    }
+                                )
+                                HorizontalDivider()
+                                DropdownMenuItem(
+                                    text = { Text("PROP with Alternatives") },
+                                    onClick = {
+                                        viewModel.setAppFilter(AppFilter.PROP_WITH_ALTERNATIVES)
+                                        showFilterMenu = false
+                                    },
+                                    leadingIcon = {
+                                        if (state.appFilter == AppFilter.PROP_WITH_ALTERNATIVES) {
+                                            Icon(Icons.Default.Check, contentDescription = null)
+                                        }
+                                    }
+                                )
+                                DropdownMenuItem(
+                                    text = { Text("PROP without Alternatives") },
+                                    onClick = {
+                                        viewModel.setAppFilter(AppFilter.PROP_NO_ALTERNATIVES)
+                                        showFilterMenu = false
+                                    },
+                                    leadingIcon = {
+                                        if (state.appFilter == AppFilter.PROP_NO_ALTERNATIVES) {
+                                            Icon(Icons.Default.Check, contentDescription = null)
+                                        }
+                                    }
+                                )
+                                HorizontalDivider()
+                                DropdownMenuItem(
+                                    text = { Text("FOSS Only") },
+                                    onClick = {
+                                        viewModel.setAppFilter(AppFilter.FOSS_ONLY)
+                                        showFilterMenu = false
+                                    },
+                                    leadingIcon = {
+                                        if (state.appFilter == AppFilter.FOSS_ONLY) {
+                                            Icon(Icons.Default.Check, contentDescription = null)
+                                        }
+                                    }
+                                )
+                                DropdownMenuItem(
+                                    text = { Text("Unknown Only") },
+                                    onClick = {
+                                        viewModel.setAppFilter(AppFilter.UNKNOWN_ONLY)
+                                        showFilterMenu = false
+                                    },
+                                    leadingIcon = {
+                                        if (state.appFilter == AppFilter.UNKNOWN_ONLY) {
+                                            Icon(Icons.Default.Check, contentDescription = null)
+                                        }
+                                    }
+                                )
+                                DropdownMenuItem(
+                                    text = { Text("Pending Only") },
+                                    onClick = {
+                                        viewModel.setAppFilter(AppFilter.PENDING_ONLY)
+                                        showFilterMenu = false
+                                    },
+                                    leadingIcon = {
+                                        if (state.appFilter == AppFilter.PENDING_ONLY) {
+                                            Icon(Icons.Default.Check, contentDescription = null)
+                                        }
+                                    }
+                                )
+                            }
+                        }
                         IconButton(onClick = { showProfileDialog = true }) {
                             Icon(
                                 imageVector = Icons.Default.AccountCircle,
@@ -227,9 +295,7 @@ fun DashboardScreen(
                         }
                     } else {
                         ScanList(
-                            apps = if (state.statusFilter == null) {
-                                state.apps.filter { it.status != AppStatus.IGNORED }
-                            } else state.apps,
+                            apps = state.apps,
                             onAppClick = onAppClick,
                             onIgnoreClick = { packageName -> viewModel.ignoreApp(packageName) },
                             onRefresh = { viewModel.scan() },
@@ -336,7 +402,6 @@ fun DashboardScreen(
                                  OutlinedButton(
                                      onClick = {
                                          showProfileDialog = false
-                                         showChangelog = true
                                      },
                                      modifier = Modifier.fillMaxWidth()
                                  ) {
@@ -404,14 +469,6 @@ fun DashboardScreen(
                         }
                     )
                 }
-            }
-
-            if (showChangelog) {
-                ChangelogDialog(
-                    version = changelogVersion,
-                    changelog = changelogText,
-                    onDismiss = { showChangelog = false }
-                )
             }
         }
     }
