@@ -15,13 +15,10 @@ import androidx.compose.material.icons.filled.AccountCircle
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
-
-import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.CloudUpload
 import androidx.compose.material.icons.filled.FilterList
 import androidx.compose.material.icons.filled.NewReleases
 import androidx.compose.material.icons.filled.Search
-import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -262,10 +259,7 @@ fun DashboardScreen(
                                 )
                             }
                             IconButton(
-                                onClick = onSettingsClick,
-                                modifier = Modifier.onGloballyPositioned { coords ->
-                                    profileRect = coords.boundsInRoot()
-                                }
+                                onClick = onSettingsClick
                             ) {
                                 Icon(
                                     imageVector = Icons.Default.Settings,
