@@ -19,6 +19,7 @@ import androidx.compose.material.icons.filled.CloudUpload
 import androidx.compose.material.icons.filled.FilterList
 import androidx.compose.material.icons.filled.NewReleases
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -448,20 +449,7 @@ fun DashboardScreen(
                                     HorizontalDivider()
                                     Spacer(modifier = Modifier.height(16.dp))
 
-                                    OutlinedButton(
-                                        onClick = {
-                                            showProfileDialog = false
-                                            onSettingsClick()
-                                        },
-                                        modifier = Modifier.fillMaxWidth()
-                                    ) {
-                                        Icon(Icons.Default.Settings, contentDescription = null)
-                                        Spacer(modifier = Modifier.width(8.dp))
-                                        Text("Settings")
-                                    }
 
-
-                                    Spacer(modifier = Modifier.height(8.dp))
 
                                     OutlinedButton(
                                         onClick = {
