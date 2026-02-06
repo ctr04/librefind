@@ -210,6 +210,12 @@ fun SettingsScreen(
                     label = "View on GitHub",
                     onClick = { uriHandler.openUri("https://github.com/jksalcedo/librefind") }
                 )
+                Spacer(modifier = Modifier.height(8.dp))
+                SettingsLinkButton(
+                    icon = Icons.Default.VolunteerActivism,
+                    label = "Donate to LibreFind",
+                    onClick = { uriHandler.openUri("https://ko-fi.com/jksalcedo") }
+                )
             }
 
             // 5. Account
@@ -319,26 +325,6 @@ private fun ClearCacheDialog(
         dismissButton = {
             TextButton(onClick = { viewModel.hideClearConfirmation() }) {
                 Text("Cancel")
-                    OutlinedButton(
-                        onClick = { uriHandler.openUri("https://ko-fi.com/jksalcedo") },
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Icon(Icons.Default.VolunteerActivism, contentDescription = null)
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text("Donate to LibreFind")
-                    }
-
-                    Spacer(modifier = Modifier.height(8.dp))
-
-                    OutlinedButton(
-                        onClick = { uriHandler.openUri("https://github.com/jksalcedo/librefind") },
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Icon(Icons.Default.Info, contentDescription = null)
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text("View on GitHub")
-                    }
-                }
             }
         }
     )
