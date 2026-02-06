@@ -261,6 +261,17 @@ fun DashboardScreen(
                                     contentDescription = "Profile"
                                 )
                             }
+                            IconButton(
+                                onClick = onSettingsClick,
+                                modifier = Modifier.onGloballyPositioned { coords ->
+                                    profileRect = coords.boundsInRoot()
+                                }
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Settings,
+                                    contentDescription = "Settings"
+                                )
+                            }
                         }
                     },
                     scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()

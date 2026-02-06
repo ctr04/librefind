@@ -47,6 +47,7 @@ import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.filled.VolunteerActivism
 import com.jksalcedo.librefind.data.local.PreferencesManager
 import org.koin.compose.koinInject
 import org.koin.androidx.compose.koinViewModel
@@ -243,6 +244,17 @@ fun SettingsScreen(
                         Icon(Icons.Default.Group, contentDescription = null)
                         Spacer(modifier = Modifier.width(8.dp))
                         Text("Join Community")
+                    }
+
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    OutlinedButton(
+                        onClick = { uriHandler.openUri("https://ko-fi.com/jksalcedo") },
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Icon(Icons.Default.VolunteerActivism, contentDescription = null)
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text("Donate to LibreFind")
                     }
 
                     Spacer(modifier = Modifier.height(8.dp))
