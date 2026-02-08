@@ -18,7 +18,7 @@ val UnknownGrayDark = Color(0xFF616161)
 val PendingOrange = Color(0xFFFFA000)   // Pending submission status
 
 // Sovereignty Levels
-val SovereignGold = Color(0xFFFFB300)   // Sovereign level achievement
+val SovereignGreen = Color(0xFF4CAF50)   // Sovereign level achievement
 val TransitionBlue = Color(0xFF1E88E5)   // Transitioning level
 val CapturedOrange = Color(0xFFFF6F00)   // Captured level warning
 

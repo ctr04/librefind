@@ -28,7 +28,7 @@ import com.jksalcedo.librefind.domain.model.AppStatus
 import com.jksalcedo.librefind.domain.model.SovereigntyScore
 import com.jksalcedo.librefind.ui.theme.CapturedOrange
 import com.jksalcedo.librefind.ui.theme.FossGreen
-import com.jksalcedo.librefind.ui.theme.SovereignGold
+import com.jksalcedo.librefind.ui.theme.SovereignGreen
 import com.jksalcedo.librefind.ui.theme.TransitionBlue
 
 @Composable
@@ -107,7 +107,7 @@ fun GaugeDetailsDialog(
                 )
                 Spacer(modifier = Modifier.height(8.dp))
 
-                LevelRow(label = "Sovereign (80%+)", color = SovereignGold)
+                LevelRow(label = "Sovereign (80%+)", color = SovereignGreen)
                 LevelRow(label = "Transitioning (40-79%)", color = TransitionBlue)
                 LevelRow(label = "Captured (<40%)", color = CapturedOrange)
             }

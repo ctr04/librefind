@@ -18,7 +18,7 @@ import com.jksalcedo.librefind.domain.model.SovereigntyLevel
 import com.jksalcedo.librefind.domain.model.SovereigntyScore
 import com.jksalcedo.librefind.ui.theme.CapturedOrange
 import com.jksalcedo.librefind.ui.theme.FossGreen
-import com.jksalcedo.librefind.ui.theme.SovereignGold
+import com.jksalcedo.librefind.ui.theme.SovereignGreen
 import com.jksalcedo.librefind.ui.theme.TransitionBlue
 import kotlin.math.roundToInt
 
@@ -169,7 +169,7 @@ private fun StatItem(
 
 private fun getLevelColor(level: SovereigntyLevel): Color {
     return when (level) {
-        SovereigntyLevel.SOVEREIGN -> SovereignGold
+        SovereigntyLevel.SOVEREIGN -> SovereignGreen
         SovereigntyLevel.TRANSITIONING -> TransitionBlue
         SovereigntyLevel.CAPTURED -> CapturedOrange
     }
@@ -188,9 +188,9 @@ private fun getLevelText(level: SovereigntyLevel): String {
 fun PreviewSovereigntyGauge() {
     val mockScore = SovereigntyScore(
         totalApps = 100,
-        fossCount = 45,
-        proprietaryCount = 40,
-        unknownCount = 10,
+        fossCount = 85,
+        proprietaryCount = 5,
+        unknownCount = 5,
         ignoredCount = 5
     )
 
