@@ -1,13 +1,16 @@
 package com.jksalcedo.librefind.ui.navigation
 
+import android.net.Uri
+
 sealed class Route(val route: String) {
     data object Dashboard : Route("dashboard")
     data object Details : Route("details/{appName}/{packageName}") {
-        fun createRoute(appName: String, packageName: String) = "details/$appName/$packageName"
+        fun createRoute(appName: String, packageName: String) =
+            "details/${Uri.encode(appName)}/${Uri.encode(packageName)}"
     }
 
     data object AlternativeDetail : Route("alternative/{altId}") {
-        fun createRoute(altId: String) = "alternative/$altId"
+        fun createRoute(altId: String) = "alternative/${Uri.encode(altId)}"
     }
 
     data object Auth : Route("auth")
@@ -21,10 +24,10 @@ sealed class Route(val route: String) {
             submissionId: String? = null
         ): String {
             val params = mutableListOf<String>()
-            if (appName != null) params.add("appName=$appName")
-            if (packageName != null) params.add("packageName=$packageName")
-            if (type != null) params.add("type=$type")
-            if (submissionId != null) params.add("submissionId=$submissionId")
+            if (appName != null) params.add("appName=${Uri.encode(appName)}")
+            if (packageName != null) params.add("packageName=${Uri.encode(packageName)}")
+            if (type != null) params.add("type=${Uri.encode(type)}")
+            if (submissionId != null) params.add("submissionId=${Uri.encode(submissionId)}")
 
             return if (params.isEmpty()) "submit" else "submit?${params.joinToString("&")}"
         }
@@ -36,5 +39,3 @@ sealed class Route(val route: String) {
     data object Report : Route("report")
     data object MyReports : Route("my_reports")
 }
-
-
