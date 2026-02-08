@@ -119,6 +119,12 @@ fun SubmitScreen(
         }
     }
 
+    LaunchedEffect(prefilledAppName, prefilledPackageName) {
+        if (!prefilledPackageName.isNullOrBlank()) {
+            viewModel.checkDuplicate(prefilledPackageName)
+        }
+    }
+
     LaunchedEffect(uiState.success) {
         if (uiState.success && uiState.submittedAppName == null) {
             onSuccess()
