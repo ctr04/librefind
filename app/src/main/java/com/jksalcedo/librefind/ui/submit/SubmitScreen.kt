@@ -204,7 +204,6 @@ fun SubmitScreen(
                 value = appName,
                 onValueChange = {
                     appName = it
-                    viewModel.checkDuplicate(it, packageName)
                 },
                 label = { Text("App Name *") },
                 singleLine = true,
@@ -215,7 +214,7 @@ fun SubmitScreen(
                 value = packageName,
                 onValueChange = {
                     packageName = it
-                    viewModel.checkDuplicate(appName, it)
+                    viewModel.checkDuplicate(it)
                     viewModel.validatePackageName(it)
                 },
                 label = { Text("Package Name *") },

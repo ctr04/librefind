@@ -518,8 +518,11 @@ class SupabaseAppRepository(
         }
     }
 
-    override suspend fun checkDuplicateApp(name: String, packageName: String): Boolean {
+    override suspend fun checkDuplicateApp(packageName: String): Boolean {
+        if (packageName.isBlank()) return false
+
         return try {
+            // Check approved FOSS alternatives (solutions table)
             val solutionsCount = supabase.postgrest.from("solutions")
                 .select(columns = Columns.list("package_name")) {
                     count(Count.EXACT)
@@ -529,6 +532,17 @@ class SupabaseAppRepository(
 
             if (solutionsCount > 0) return true
 
+            // Check approved proprietary targets (targets table)
+            val targetsCount = supabase.postgrest.from("targets")
+                .select(columns = Columns.list("package_name")) {
+                    count(Count.EXACT)
+                    filter { eq("package_name", packageName) }
+                    limit(1)
+                }.countOrNull() ?: 0
+
+            if (targetsCount > 0) return true
+
+            // Check pending submissions (user_submissions table)
             val pendingCount = supabase.postgrest.from("user_submissions")
                 .select(columns = Columns.list("app_package")) {
                     count(Count.EXACT)
@@ -539,17 +553,9 @@ class SupabaseAppRepository(
                     limit(1)
                 }.countOrNull() ?: 0
 
-            if (pendingCount > 0) return true
-
-            val targetsCount = supabase.postgrest.from("targets")
-                .select(columns = Columns.list("package_name")) {
-                    count(Count.EXACT)
-                    filter { eq("package_name", packageName) }
-                    limit(1)
-                }.countOrNull() ?: 0
-
-            targetsCount > 0
-        } catch (_: Exception) {
+            pendingCount > 0
+        } catch (e: Exception) {
+            Log.e("SupabaseAppRepo", "checkDuplicateApp failed for $packageName", e)
             false
         }
     }
@@ -558,6 +564,12 @@ class SupabaseAppRepository(
         if (query.isBlank()) return emptyList()
 
         return try {
+            // Escape SQL LIKE wildcards in user input
+            val sanitizedQuery = query
+                .replace("\\", "\\\\")
+                .replace("%", "\\%")
+                .replace("_", "\\_")
+
             val solutions = supabase.postgrest.from("solutions")
                 .select(
                     columns = Columns.list(
@@ -568,8 +580,8 @@ class SupabaseAppRepository(
                 ) {
                     filter {
                         or {
-                            ilike("name", "%$query%")
-                            ilike("package_name", "%$query%")
+                            ilike("name", "%$sanitizedQuery%")
+                            ilike("package_name", "%$sanitizedQuery%")
                         }
                     }
                     limit(limit.toLong())
@@ -610,7 +622,7 @@ class SupabaseAppRepository(
                 )
             }
         } catch (e: Exception) {
-            e.printStackTrace()
+            Log.e("SupabaseAppRepo", "searchSolutions failed", e)
             emptyList()
         }
     }

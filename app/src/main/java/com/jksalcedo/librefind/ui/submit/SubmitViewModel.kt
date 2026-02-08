@@ -217,16 +217,16 @@ class SubmitViewModel(
 
     private var checkDuplicateJob: kotlinx.coroutines.Job? = null
 
-    fun checkDuplicate(name: String, packageName: String) {
+    fun checkDuplicate(packageName: String) {
         checkDuplicateJob?.cancel()
         checkDuplicateJob = viewModelScope.launch {
-            kotlinx.coroutines.delay(500)
-            if (name.isBlank() && packageName.isBlank()) {
+            delay(500)
+            if (packageName.isBlank()) {
                 _uiState.value = _uiState.value.copy(duplicateWarning = null)
                 return@launch
             }
 
-            val isDuplicate = appRepository.checkDuplicateApp(name, packageName)
+            val isDuplicate = appRepository.checkDuplicateApp(packageName)
             val warning = if (isDuplicate) {
                 "This app is already in our database."
             } else {
@@ -257,10 +257,26 @@ class SubmitViewModel(
             return
         }
 
-        val isValid = url.startsWith("https://")
-        _uiState.value = _uiState.value.copy(
-            repoUrlError = if (isValid) null else "URL must start with https://"
+        val allowedHosts = listOf(
+            "github.com", "gitlab.com", "codeberg.org",
+            "bitbucket.org", "sr.ht", "gitea.com",
+            "framagit.org", "salsa.debian.org"
         )
+
+        val error = when {
+            !url.startsWith("https://") ->
+                "URL must start with https://"
+
+            !allowedHosts.any { host -> url.startsWith("https://$host/") } ->
+                "URL must be from a known code hosting platform (GitHub, GitLab, Codeberg, etc.)"
+
+            url.count { it == '/' } < 4 ->
+                "URL must include the repository path (e.g. https://github.com/owner/repo)"
+
+            else -> null
+        }
+
+        _uiState.value = _uiState.value.copy(repoUrlError = error)
     }
 
     private var searchSolutionsJob: Job? = null
