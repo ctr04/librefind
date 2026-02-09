@@ -426,15 +426,14 @@ class SupabaseAppRepository(
         val userId =
             supabase.auth.currentUserOrNull()?.id ?: throw IllegalStateException("Not logged in")
 
-        // Using user_submissions as a temporary store for feedback
-        val submission = UserSubmissionDto(
-            appName = "Feedback ($type)",
-            appPackage = packageName,
+        val report = UserReportDto(
+            title = "Feedback: $packageName ($type)",
             description = text,
-            submitterId = userId,
-            status = "PENDING"
+            reportType = "FEEDBACK",
+            priority = "LOW",
+            submitterId = userId
         )
-        supabase.postgrest.from("user_submissions").insert(submission)
+        supabase.postgrest.from("user_reports").insert(report)
     }
 
     override suspend fun getMySubmissions(userId: String): List<Submission> {

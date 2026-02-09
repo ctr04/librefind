@@ -35,7 +35,10 @@ data class SubmitUiState(
     val selectedAlternatives: Set<String> = emptySet(),
     val isEditing: Boolean = false,
     val editingSubmissionId: String? = null,
-    val loadedSubmission: Submission? = null
+    val loadedSubmission: Submission? = null,
+    // FOSS Search
+    val fossSearchResults: List<Alternative> = emptyList(),
+    val linkedSolution: Alternative? = null
 )
 
 class SubmitViewModel(
@@ -211,14 +214,61 @@ class SubmitViewModel(
             unknownApps = _uiState.value.unknownApps,
             isEditing = false,
             editingSubmissionId = null,
-            loadedSubmission = null
+            loadedSubmission = null,
+            linkedSolution = null,
+            fossSearchResults = emptyList()
         )
     }
 
-    private var checkDuplicateJob: kotlinx.coroutines.Job? = null
+    private var checkDuplicateJob: Job? = null
+
+    private var searchFossAppsJob: Job? = null
+
+    fun searchFossApps(query: String) {
+        searchFossAppsJob?.cancel()
+
+        if (query.isBlank()) {
+            _uiState.value = _uiState.value.copy(fossSearchResults = emptyList())
+            return
+        }
+
+        searchFossAppsJob = viewModelScope.launch {
+            delay(300)
+            try {
+                val results = appRepository.searchSolutions(query, limit = 10)
+                _uiState.value = _uiState.value.copy(fossSearchResults = results)
+            } catch (e: Exception) {
+                e.printStackTrace()
+                _uiState.value = _uiState.value.copy(fossSearchResults = emptyList())
+            }
+        }
+    }
+
+    fun selectFossApp(app: Alternative) {
+        _uiState.value = _uiState.value.copy(
+            linkedSolution = app,
+            fossSearchResults = emptyList(), // Clear results to hide dropdown
+            duplicateWarning = null // Clear any duplicate warning as this is a known existing app
+        )
+    }
+
+    fun clearLinkedApp() {
+        _uiState.value = _uiState.value.copy(
+            linkedSolution = null,
+            duplicateWarning = null
+        )
+    }
 
     fun checkDuplicate(packageName: String) {
         checkDuplicateJob?.cancel()
+
+        // If this package matches the linked solution, we skip the duplicate check
+        // because we WANT to allow linking to an existing app.
+        if (_uiState.value.linkedSolution?.packageName == packageName) {
+            _uiState.value = _uiState.value.copy(duplicateWarning = null)
+            return
+        }
+
         checkDuplicateJob = viewModelScope.launch {
             delay(500)
             if (packageName.isBlank()) {
@@ -241,7 +291,6 @@ class SubmitViewModel(
         // Starts with a letter
         // Contains lowercase letters, numbers, underscores
         // Must have at least one dot separating parts
-        // Parts must start with letter/number/underscore (regex says [a-z0-9_]+ so yes)
         // Ends with letter/number/underscore
         val regex = Regex("^[a-z][a-z0-9_]*(\\.[a-z0-9_]+)+[0-9a-z_]$")
         val isValid = regex.matches(packageName)
