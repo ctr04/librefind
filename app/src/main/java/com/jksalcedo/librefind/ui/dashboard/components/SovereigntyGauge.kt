@@ -16,7 +16,6 @@ import androidx.compose.ui.unit.dp
 import com.jksalcedo.librefind.domain.model.AppStatus
 import com.jksalcedo.librefind.domain.model.SovereigntyLevel
 import com.jksalcedo.librefind.domain.model.SovereigntyScore
-import com.jksalcedo.librefind.ui.dashboard.AppFilter
 import com.jksalcedo.librefind.ui.theme.CapturedOrange
 import com.jksalcedo.librefind.ui.theme.FossGreen
 import com.jksalcedo.librefind.ui.theme.SovereignGreen
@@ -50,104 +49,24 @@ fun SovereigntyGauge(
                 }
             )
         ) {
-            when (currentFilter) {
-                AppStatus.FOSS -> {
-                    CircularProgressIndicator(
-                        progress = { score.fossPercentage / 100f },
-                        modifier = Modifier.fillMaxSize(),
-                        color = FossGreen,
-                        trackColor = MaterialTheme.colorScheme.surfaceVariant,
-                        strokeWidth = 12.dp,
-                        strokeCap = StrokeCap.Round,
-                    )
-                }
-                AppStatus.PROP -> {
-                    CircularProgressIndicator(
-                        progress = { score.proprietaryPercentage / 100f },
-                        modifier = Modifier.fillMaxSize(),
-                        color = CapturedOrange,
-                        trackColor = MaterialTheme.colorScheme.surfaceVariant,
-                        strokeWidth = 12.dp,
-                        strokeCap = StrokeCap.Round,
-                    )
-                }
-                AppStatus.UNKN -> {
-                    CircularProgressIndicator(
-                        progress = { score.unknownPercentage / 100f },
-                        modifier = Modifier.fillMaxSize(),
-                        color = MaterialTheme.colorScheme.outline,
-                        trackColor = MaterialTheme.colorScheme.surfaceVariant,
-                        strokeWidth = 12.dp,
-                        strokeCap = StrokeCap.Round,
-                    )
-                }
-                AppStatus.IGNORED -> {
-                    CircularProgressIndicator(
-                        progress = { score.ignoredPercentage / 100f },
-                        modifier = Modifier.fillMaxSize(),
-                        color = MaterialTheme.colorScheme.error,
-                        trackColor = MaterialTheme.colorScheme.surfaceVariant,
-                        strokeWidth = 12.dp,
-                        strokeCap = StrokeCap.Round,
-                    )
-                }
-                else -> {
-                    CircularProgressIndicator(
-                        progress = { score.fossPercentage / 100f },
-                        modifier = Modifier.fillMaxSize(),
-                        color = getLevelColor(score.level),
-                        trackColor = MaterialTheme.colorScheme.surfaceVariant,
-                        strokeWidth = 12.dp,
-                        strokeCap = StrokeCap.Round,
-                    )
-                }
-            }
+            CircularProgressIndicator(
+                progress = { getAppStatusPercentage(score,currentFilter) / 100f },
+                modifier = Modifier.fillMaxSize(),
+                color = getAppStatusColor(score.level, currentFilter),
+                trackColor = MaterialTheme.colorScheme.surfaceVariant,
+                strokeWidth = 12.dp,
+                strokeCap = StrokeCap.Round,
+            )
 
             Column(
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                when (currentFilter) {
-                    AppStatus.FOSS -> {
-                        Text(
-                            text = "${score.fossPercentage.roundToInt()}%",
-                            style = MaterialTheme.typography.displayMedium,
-                            fontWeight = FontWeight.Bold,
-                            color = FossGreen,
-                        )
-                    }
-                    AppStatus.PROP -> {
-                        Text(
-                            text = "${score.proprietaryPercentage.roundToInt()}%",
-                            style = MaterialTheme.typography.displayMedium,
-                            fontWeight = FontWeight.Bold,
-                            color = CapturedOrange,
-                        )
-                    }
-                    AppStatus.UNKN -> {
-                        Text(
-                            text = "${score.unknownPercentage.roundToInt()}%",
-                            style = MaterialTheme.typography.displayMedium,
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.outline,
-                        )
-                    }
-                    AppStatus.IGNORED -> {
-                        Text(
-                            text = "${score.ignoredPercentage.roundToInt()}%",
-                            style = MaterialTheme.typography.displayMedium,
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.error,
-                        )
-                    }
-                    else -> {
-                        Text(
-                            text = "${score.fossPercentage.roundToInt()}%",
-                            style = MaterialTheme.typography.displayMedium,
-                            fontWeight = FontWeight.Bold,
-                            color = getLevelColor(score.level)
-                        )
-                    }
-                }
+                Text(
+                    text = "${getAppStatusPercentage(score, currentFilter).roundToInt()}%",
+                    style = MaterialTheme.typography.displayMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = getAppStatusColor(score.level, currentFilter)
+                )
                 Text(
                     text = getLevelText(score.level),
                     style = MaterialTheme.typography.titleSmall,
@@ -245,6 +164,27 @@ private fun StatItem(
             fontWeight = FontWeight.Bold,
             color = color
         )
+    }
+}
+
+private fun getAppStatusPercentage(score: SovereigntyScore, appStatus: AppStatus?): Float {
+    return when (appStatus) {
+        AppStatus.FOSS -> score.fossPercentage
+        AppStatus.PROP -> score.proprietaryPercentage
+        AppStatus.UNKN -> score.unknownPercentage
+        AppStatus.IGNORED -> score.ignoredPercentage
+        else -> score.fossPercentage
+    }
+}
+
+@Composable
+private fun getAppStatusColor(level: SovereigntyLevel, appStatus: AppStatus?): Color {
+    return when (appStatus) {
+        AppStatus.FOSS -> FossGreen
+        AppStatus.PROP -> CapturedOrange
+        AppStatus.UNKN -> MaterialTheme.colorScheme.outline
+        AppStatus.IGNORED -> MaterialTheme.colorScheme.error
+        else -> getLevelColor(level)
     }
 }
 
