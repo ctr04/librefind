@@ -1,5 +1,6 @@
 package com.jksalcedo.librefind.ui.navigation
 
+import android.net.Uri
 import androidx.compose.runtime.Composable
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
@@ -85,7 +86,7 @@ fun NavGraph(
             route = Route.AlternativeDetail.route,
             arguments = listOf(navArgument("altId") { type = NavType.StringType })
         ) { backStackEntry ->
-            val altId = backStackEntry.arguments?.getString("altId") ?: return@composable
+            val altId = backStackEntry.arguments?.getString("altId")?.let { Uri.decode(it) } ?: return@composable
             AlternativeDetailScreen(
                 altId = altId,
                 onBackClick = { navController.navigateUp() }
