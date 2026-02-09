@@ -14,7 +14,7 @@ data class Report(
     val createdAt: Long = System.currentTimeMillis()
 )
 
-enum class ReportType { BUG, SUGGESTION, QUESTION, OTHER }
+enum class ReportType { BUG, SUGGESTION, QUESTION, FEEDBACK, OTHER }
 
 enum class ReportStatus {
     OPEN,           // New, not yet reviewed

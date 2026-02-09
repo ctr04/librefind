@@ -23,6 +23,8 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.Link
+import androidx.compose.material.icons.filled.LinkOff
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Checkbox
@@ -100,12 +102,7 @@ fun SubmitScreen(
             appName = sub.submittedApp.name
             packageName = sub.submittedApp.packageName
             description = sub.submittedApp.description
-            // Note: Submission model might need to be expanded if we want to pre-fill everything perfectly
-            // For now assuming basic fields are there.
-            // We need to fetch more details if they are missing from the list view model.
-            // But let's assume for now we can get what we need.
 
-            // If it's a proprietary submission, we might need to parse the proprietaryPackages string
             if (sub.type == SubmissionType.NEW_ALTERNATIVE) {
                 // proprietaryPackages is a comma separated string in the Submission model
                 selectedProprietaryPackages =
@@ -116,6 +113,12 @@ fun SubmitScreen(
             repoUrl = sub.submittedApp.repoUrl
             fdroidId = sub.submittedApp.fdroidId
             license = sub.submittedApp.license
+        }
+    }
+
+    LaunchedEffect(prefilledAppName, prefilledPackageName) {
+        if (!prefilledPackageName.isNullOrBlank()) {
+            viewModel.checkDuplicate(prefilledPackageName)
         }
     }
 
@@ -204,18 +207,18 @@ fun SubmitScreen(
                 value = appName,
                 onValueChange = {
                     appName = it
-                    viewModel.checkDuplicate(it, packageName)
                 },
                 label = { Text("App Name *") },
                 singleLine = true,
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier.fillMaxWidth(),
+                readOnly = uiState.linkedSolution != null
             )
 
             OutlinedTextField(
                 value = packageName,
                 onValueChange = {
                     packageName = it
-                    viewModel.checkDuplicate(appName, it)
+                    viewModel.checkDuplicate(it)
                     viewModel.validatePackageName(it)
                 },
                 label = { Text("Package Name *") },
@@ -227,7 +230,8 @@ fun SubmitScreen(
                         Text(error, color = MaterialTheme.colorScheme.error)
                     }
                 },
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier.fillMaxWidth(),
+                readOnly = uiState.linkedSolution != null
             )
 
             OutlinedTextField(
@@ -360,6 +364,132 @@ fun SubmitScreen(
                     style = MaterialTheme.typography.titleMedium
                 )
 
+                // FOSS Search Section
+                if (uiState.linkedSolution == null) {
+                    var fossSearchQuery by remember { mutableStateOf("") }
+
+                    OutlinedTextField(
+                        value = fossSearchQuery,
+                        onValueChange = {
+                            fossSearchQuery = it
+                            viewModel.searchFossApps(it)
+                        },
+                        label = { Text("Search specific FOSS app (optional)") },
+                        placeholder = { Text("Search existing database...") },
+                        leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
+                        trailingIcon = {
+                             if (fossSearchQuery.isNotEmpty()) {
+                                 IconButton(onClick = {
+                                     fossSearchQuery = ""
+                                     viewModel.searchFossApps("")
+                                 }) {
+                                     Icon(Icons.Default.Close, contentDescription = "Clear")
+                                 }
+                             }
+                        },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+
+                    if (uiState.fossSearchResults.isNotEmpty()) {
+                        Surface(
+                            modifier = Modifier.fillMaxWidth(),
+                            tonalElevation = 2.dp,
+                            shape = MaterialTheme.shapes.small
+                        ) {
+                            Column {
+                                uiState.fossSearchResults.forEach { app ->
+                                    Row(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .clickable {
+                                                viewModel.selectFossApp(app)
+                                                // Auto-fill fields
+                                                appName = app.name
+                                                packageName = app.packageName
+                                                description = app.description ?: ""
+                                                repoUrl = app.repoUrl ?: ""
+                                                fdroidId = app.fdroidId ?: ""
+                                                license = app.license ?: ""
+                                            }
+                                            .padding(12.dp),
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Column(modifier = Modifier.weight(1f)) {
+                                            Text(
+                                                text = app.name,
+                                                style = MaterialTheme.typography.bodyLarge
+                                            )
+                                            Text(
+                                                text = app.packageName,
+                                                style = MaterialTheme.typography.bodySmall,
+                                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                                            )
+                                        }
+                                        Icon(
+                                            Icons.Default.Link,
+                                            contentDescription = "Link",
+                                            tint = MaterialTheme.colorScheme.primary
+                                        )
+                                    }
+                                    if (app != uiState.fossSearchResults.last()) {
+                                        HorizontalDivider(modifier = Modifier.alpha(0.5f))
+                                    }
+                                }
+                            }
+                        }
+                        Spacer(modifier = Modifier.height(8.dp))
+                    }
+                } else {
+                    // Linked App Display
+                    Surface(
+                        color = MaterialTheme.colorScheme.primaryContainer,
+                        shape = MaterialTheme.shapes.medium,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Row(
+                            modifier = Modifier
+                                .padding(12.dp)
+                                .fillMaxWidth(),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(
+                                    text = "Linked to Existing App",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.onPrimaryContainer
+                                )
+                                Text(
+                                    text = uiState.linkedSolution?.name ?: "Unknown",
+                                    style = MaterialTheme.typography.titleSmall,
+                                    color = MaterialTheme.colorScheme.onPrimaryContainer
+                                )
+                                Text(
+                                    text = uiState.linkedSolution?.packageName ?: "",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.8f)
+                                )
+                            }
+                            IconButton(onClick = { 
+                                viewModel.clearLinkedApp() 
+                                // Optional: Clear fields or keep them? 
+                                // Keeping them allows user to use it as a template, 
+                                // but clearing might be less confusing if they want to start over.
+                                // Let's keep them for now as it's less destructive.
+                            }) {
+                                Icon(
+                                    Icons.Default.LinkOff, 
+                                    contentDescription = "Unlink",
+                                    tint = MaterialTheme.colorScheme.onPrimaryContainer
+                                )
+                            }
+                        }
+                    }
+                    Spacer(modifier = Modifier.height(8.dp))
+                }
+
+
                 Text(
                     text = "License and Repository URL are required for FOSS alternatives",
                     style = MaterialTheme.typography.bodySmall,
@@ -443,7 +573,8 @@ fun SubmitScreen(
                             Text(error, color = MaterialTheme.colorScheme.error)
                         }
                     },
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier.fillMaxWidth(),
+                    readOnly = uiState.linkedSolution != null
                 )
 
                 OutlinedTextField(
@@ -451,7 +582,8 @@ fun SubmitScreen(
                     onValueChange = { fdroidId = it },
                     label = { Text("F-Droid ID") },
                     singleLine = true,
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier.fillMaxWidth(),
+                    readOnly = uiState.linkedSolution != null
                 )
 
                 var showLicenseDropdown by remember { mutableStateOf(false) }
@@ -487,14 +619,16 @@ fun SubmitScreen(
                         readOnly = true,
                         label = { Text("License *") },
                         placeholder = { Text("Select a license") },
-                        trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = showLicenseDropdown) },
+                        trailingIcon = { if (uiState.linkedSolution == null) ExposedDropdownMenuDefaults.TrailingIcon(expanded = showLicenseDropdown) },
                         modifier = Modifier.fillMaxWidth()
                     )
-                    Box(
-                        modifier = Modifier
-                            .matchParentSize()
-                            .clickable { showLicenseDropdown = true }
-                    )
+                    if (uiState.linkedSolution == null) {
+                        Box(
+                            modifier = Modifier
+                                .matchParentSize()
+                                .clickable { showLicenseDropdown = true }
+                        )
+                    }
                 }
 
                 if (showCustomLicenseField || license == "Other") {
@@ -505,7 +639,8 @@ fun SubmitScreen(
                         label = { Text("Custom License Name *") },
                         placeholder = { Text("e.g. My Custom License") },
                         singleLine = true,
-                        modifier = Modifier.fillMaxWidth()
+                        modifier = Modifier.fillMaxWidth(),
+                        readOnly = uiState.linkedSolution != null
                     )
                 }
 

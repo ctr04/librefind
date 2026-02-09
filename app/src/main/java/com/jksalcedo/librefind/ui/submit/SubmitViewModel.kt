@@ -35,7 +35,10 @@ data class SubmitUiState(
     val selectedAlternatives: Set<String> = emptySet(),
     val isEditing: Boolean = false,
     val editingSubmissionId: String? = null,
-    val loadedSubmission: Submission? = null
+    val loadedSubmission: Submission? = null,
+    // FOSS Search
+    val fossSearchResults: List<Alternative> = emptyList(),
+    val linkedSolution: Alternative? = null
 )
 
 class SubmitViewModel(
@@ -211,22 +214,69 @@ class SubmitViewModel(
             unknownApps = _uiState.value.unknownApps,
             isEditing = false,
             editingSubmissionId = null,
-            loadedSubmission = null
+            loadedSubmission = null,
+            linkedSolution = null,
+            fossSearchResults = emptyList()
         )
     }
 
-    private var checkDuplicateJob: kotlinx.coroutines.Job? = null
+    private var checkDuplicateJob: Job? = null
 
-    fun checkDuplicate(name: String, packageName: String) {
+    private var searchFossAppsJob: Job? = null
+
+    fun searchFossApps(query: String) {
+        searchFossAppsJob?.cancel()
+
+        if (query.isBlank()) {
+            _uiState.value = _uiState.value.copy(fossSearchResults = emptyList())
+            return
+        }
+
+        searchFossAppsJob = viewModelScope.launch {
+            delay(300)
+            try {
+                val results = appRepository.searchSolutions(query, limit = 10)
+                _uiState.value = _uiState.value.copy(fossSearchResults = results)
+            } catch (e: Exception) {
+                e.printStackTrace()
+                _uiState.value = _uiState.value.copy(fossSearchResults = emptyList())
+            }
+        }
+    }
+
+    fun selectFossApp(app: Alternative) {
+        _uiState.value = _uiState.value.copy(
+            linkedSolution = app,
+            fossSearchResults = emptyList(), // Clear results to hide dropdown
+            duplicateWarning = null // Clear any duplicate warning as this is a known existing app
+        )
+    }
+
+    fun clearLinkedApp() {
+        _uiState.value = _uiState.value.copy(
+            linkedSolution = null,
+            duplicateWarning = null
+        )
+    }
+
+    fun checkDuplicate(packageName: String) {
         checkDuplicateJob?.cancel()
+
+        // If this package matches the linked solution, we skip the duplicate check
+        // because we WANT to allow linking to an existing app.
+        if (_uiState.value.linkedSolution?.packageName == packageName) {
+            _uiState.value = _uiState.value.copy(duplicateWarning = null)
+            return
+        }
+
         checkDuplicateJob = viewModelScope.launch {
-            kotlinx.coroutines.delay(500)
-            if (name.isBlank() && packageName.isBlank()) {
+            delay(500)
+            if (packageName.isBlank()) {
                 _uiState.value = _uiState.value.copy(duplicateWarning = null)
                 return@launch
             }
 
-            val isDuplicate = appRepository.checkDuplicateApp(name, packageName)
+            val isDuplicate = appRepository.checkDuplicateApp(packageName)
             val warning = if (isDuplicate) {
                 "This app is already in our database."
             } else {
@@ -241,7 +291,6 @@ class SubmitViewModel(
         // Starts with a letter
         // Contains lowercase letters, numbers, underscores
         // Must have at least one dot separating parts
-        // Parts must start with letter/number/underscore (regex says [a-z0-9_]+ so yes)
         // Ends with letter/number/underscore
         val regex = Regex("^[a-z][a-z0-9_]*(\\.[a-z0-9_]+)+[0-9a-z_]$")
         val isValid = regex.matches(packageName)
@@ -257,10 +306,26 @@ class SubmitViewModel(
             return
         }
 
-        val isValid = url.startsWith("https://")
-        _uiState.value = _uiState.value.copy(
-            repoUrlError = if (isValid) null else "URL must start with https://"
+        val allowedHosts = listOf(
+            "github.com", "gitlab.com", "codeberg.org",
+            "bitbucket.org", "sr.ht", "gitea.com",
+            "framagit.org", "salsa.debian.org"
         )
+
+        val error = when {
+            !url.startsWith("https://") ->
+                "URL must start with https://"
+
+            !allowedHosts.any { host -> url.startsWith("https://$host/") } ->
+                "URL must be from a known code hosting platform (GitHub, GitLab, Codeberg, etc.)"
+
+            url.count { it == '/' } < 4 ->
+                "URL must include the repository path (e.g. https://github.com/owner/repo)"
+
+            else -> null
+        }
+
+        _uiState.value = _uiState.value.copy(repoUrlError = error)
     }
 
     private var searchSolutionsJob: Job? = null
