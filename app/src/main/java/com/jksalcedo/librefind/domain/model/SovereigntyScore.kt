@@ -23,6 +23,24 @@ data class SovereigntyScore(
         get() = if (totalApps - ignoredCount > 0) (fossCount.toFloat() / (totalApps - ignoredCount)) * 100 else 0f
 
     /**
+     * Percentage of proprietary apps (0-100)
+     */
+    val proprietaryPercentage: Float
+        get() = if (totalApps - ignoredCount > 0) (proprietaryCount.toFloat() / (totalApps - ignoredCount)) * 100 else 0f
+
+    /**
+     * Percentage of unknown apps (0-100)
+     */
+    val unknownPercentage: Float
+        get() = if (totalApps - ignoredCount > 0) (unknownCount.toFloat() / (totalApps - ignoredCount)) * 100 else 0f
+
+    /**
+     * Percentage of ignored apps (0 because ignored apps get ignored)
+     */
+    val ignoredPercentage: Float
+        get() = 0f
+
+    /**
      * Sovereignty level based on percentage
      * - SOVEREIGN: 80%+ FOSS
      * - TRANSITIONING: 40-79% FOSS

@@ -50,9 +50,9 @@ fun SovereigntyGauge(
             )
         ) {
             CircularProgressIndicator(
-                progress = { score.fossPercentage / 100f },
+                progress = { getAppStatusPercentage(score,currentFilter) / 100f },
                 modifier = Modifier.fillMaxSize(),
-                color = getLevelColor(score.level),
+                color = getAppStatusColor(score.level, currentFilter),
                 trackColor = MaterialTheme.colorScheme.surfaceVariant,
                 strokeWidth = 12.dp,
                 strokeCap = StrokeCap.Round,
@@ -62,10 +62,10 @@ fun SovereigntyGauge(
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 Text(
-                    text = "${score.fossPercentage.roundToInt()}%",
+                    text = "${getAppStatusPercentage(score, currentFilter).roundToInt()}%",
                     style = MaterialTheme.typography.displayMedium,
                     fontWeight = FontWeight.Bold,
-                    color = getLevelColor(score.level)
+                    color = getAppStatusColor(score.level, currentFilter)
                 )
                 Text(
                     text = getLevelText(score.level),
@@ -164,6 +164,27 @@ private fun StatItem(
             fontWeight = FontWeight.Bold,
             color = color
         )
+    }
+}
+
+private fun getAppStatusPercentage(score: SovereigntyScore, appStatus: AppStatus?): Float {
+    return when (appStatus) {
+        AppStatus.FOSS -> score.fossPercentage
+        AppStatus.PROP -> score.proprietaryPercentage
+        AppStatus.UNKN -> score.unknownPercentage
+        AppStatus.IGNORED -> score.ignoredPercentage
+        else -> score.fossPercentage
+    }
+}
+
+@Composable
+private fun getAppStatusColor(level: SovereigntyLevel, appStatus: AppStatus?): Color {
+    return when (appStatus) {
+        AppStatus.FOSS -> FossGreen
+        AppStatus.PROP -> CapturedOrange
+        AppStatus.UNKN -> MaterialTheme.colorScheme.outline
+        AppStatus.IGNORED -> MaterialTheme.colorScheme.error
+        else -> getLevelColor(level)
     }
 }
 
