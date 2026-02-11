@@ -6,6 +6,7 @@ import com.jksalcedo.librefind.domain.repository.AuthRepository
 import io.github.jan.supabase.SupabaseClient
 import io.github.jan.supabase.auth.Auth
 import io.github.jan.supabase.auth.auth
+import io.github.jan.supabase.auth.providers.Github
 import io.github.jan.supabase.auth.providers.builtin.Email
 import io.github.jan.supabase.auth.status.SessionStatus
 import io.github.jan.supabase.postgrest.postgrest
@@ -57,6 +58,10 @@ class SupabaseAuthRepository(
             this.email = email
             this.password = password
         }
+    }
+
+    override suspend fun signInWithGithub(): Result<Unit> = runCatching {
+        auth.signInWith(Github, redirectUrl = "librefind://login-callback")
     }
 
     override suspend fun signOut() {
