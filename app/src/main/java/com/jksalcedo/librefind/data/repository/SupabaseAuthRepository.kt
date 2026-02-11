@@ -91,6 +91,9 @@ class SupabaseAuthRepository(
 
     override suspend fun deleteAccount(): Result<Unit> = runCatching {
         supabase.postgrest.rpc("delete_account")
+        auth.currentUserOrNull()?.id.let {
+            auth.admin.deleteUser(it!!)
+        }
         auth.signOut()
     }
 
