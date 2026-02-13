@@ -48,7 +48,7 @@ fun FieldWithHelp(
     Column(modifier = modifier.fillMaxWidth()) {
         Row(
             verticalAlignment = Alignment.CenterVertically,
-            modifier = Modifier.padding(bottom = 2.dp)
+            modifier = Modifier
         ) {
             Text(
                 text = helpTitle,

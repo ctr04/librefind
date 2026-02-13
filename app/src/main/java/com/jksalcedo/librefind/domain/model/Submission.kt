@@ -12,7 +12,7 @@ data class Submission(
     val rejectionReason: String? = null
 )
 
-enum class SubmissionType { NEW_ALTERNATIVE, NEW_PROPRIETARY }
+enum class SubmissionType { NEW_ALTERNATIVE, NEW_PROPRIETARY, LINKING }
 enum class SubmissionStatus { PENDING, APPROVED, REJECTED }
 
 data class SubmittedApp(

@@ -38,7 +38,8 @@ data class SubmitUiState(
     val loadedSubmission: Submission? = null,
     // FOSS Search
     val fossSearchResults: List<Alternative> = emptyList(),
-    val linkedSolution: Alternative? = null
+    val linkedSolution: Alternative? = null,
+    val linkTargetPackage: String? = null
 )
 
 class SubmitViewModel(
@@ -167,7 +168,25 @@ class SubmitViewModel(
             }
 
             val result =
-                if (_uiState.value.isEditing && _uiState.value.editingSubmissionId != null) {
+                if (type == SubmissionType.LINKING) {
+                    if (_uiState.value.linkTargetPackage == null) {
+                        _uiState.value =
+                            _uiState.value.copy(isLoading = false, error = "Please select a target app")
+                        return@launch
+                    }
+                    if (_uiState.value.selectedAlternatives.isEmpty()) {
+                        _uiState.value =
+                            _uiState.value.copy(isLoading = false, error = "Please select at least one solution")
+                        return@launch
+                    }
+
+                    appRepository.submitLinkedAlternatives(
+                        proprietaryPackage = _uiState.value.linkTargetPackage!!,
+                        alternatives = _uiState.value.selectedAlternatives.toList(),
+                        submitterId = user.uid
+                    )
+
+                } else if (_uiState.value.isEditing && _uiState.value.editingSubmissionId != null) {
                     updateSubmissionUseCase(
                         id = _uiState.value.editingSubmissionId!!,
                         proprietaryPackage = proprietaryPackages,
@@ -197,7 +216,7 @@ class SubmitViewModel(
                 _uiState.value = _uiState.value.copy(
                     isLoading = false,
                     success = true,
-                    submittedAppName = appName
+                    submittedAppName = if (type == SubmissionType.LINKING) _uiState.value.linkTargetPackage else appName
                 )
             }.onFailure { e ->
                 _uiState.value = _uiState.value.copy(
@@ -206,6 +225,10 @@ class SubmitViewModel(
                 )
             }
         }
+    }
+
+    fun setLinkTarget(packageName: String) {
+        _uiState.value = _uiState.value.copy(linkTargetPackage = packageName)
     }
 
     fun resetState() {

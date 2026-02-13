@@ -53,6 +53,12 @@ interface AppRepository {
         alternatives: List<String> = emptyList()
     ): Result<Unit>
 
+    suspend fun submitLinkedAlternatives(
+        proprietaryPackage: String,
+        alternatives: List<String>,
+        submitterId: String
+    ): Result<Unit>
+
     suspend fun updateSubmission(
         id: String,
         proprietaryPackage: String,

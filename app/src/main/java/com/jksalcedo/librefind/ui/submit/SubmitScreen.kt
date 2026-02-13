@@ -54,14 +54,16 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
+import com.jksalcedo.librefind.domain.model.Alternative
 import com.jksalcedo.librefind.domain.model.SubmissionType
 import com.jksalcedo.librefind.ui.common.FieldWithHelp
+import androidx.compose.ui.platform.LocalUriHandler
 import org.koin.androidx.compose.koinViewModel
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SubmitScreen(
     onBackClick: () -> Unit,
@@ -75,6 +77,64 @@ fun SubmitScreen(
 ) {
     val uiState by viewModel.uiState.collectAsState()
 
+    LaunchedEffect(submissionId) {
+        if (submissionId != null) {
+            viewModel.loadSubmission(submissionId)
+        }
+    }
+
+    LaunchedEffect(prefilledAppName, prefilledPackageName) {
+        if (!prefilledPackageName.isNullOrBlank()) {
+            viewModel.checkDuplicate(prefilledPackageName)
+        }
+    }
+
+    SubmitContent(
+        uiState = uiState,
+        onBackClick = onBackClick,
+        onSuccess = onSuccess,
+        onNavigateToTargetSubmission = onNavigateToTargetSubmission,
+        prefilledAppName = prefilledAppName,
+        prefilledPackageName = prefilledPackageName,
+        prefilledType = prefilledType,
+        onCheckDuplicate = viewModel::checkDuplicate,
+        onValidatePackageName = viewModel::validatePackageName,
+        onSearchSolutions = viewModel::searchSolutions,
+        onClearSolutionSearchResults = viewModel::clearSolutionSearchResults,
+        onAddAlternative = viewModel::addAlternative,
+        onAddTarget = viewModel::setLinkTarget,
+        onRemoveAlternative = viewModel::removeAlternative,
+        onSearchFossApps = viewModel::searchFossApps,
+        onSelectFossApp = viewModel::selectFossApp,
+        onClearLinkedApp = viewModel::clearLinkedApp,
+        onValidateRepoUrl = viewModel::validateRepoUrl,
+        onSubmit = viewModel::submit,
+    )
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun SubmitContent(
+    uiState: SubmitUiState,
+    onBackClick: () -> Unit,
+    onSuccess: () -> Unit,
+    onNavigateToTargetSubmission: (appName: String, packageName: String) -> Unit,
+    prefilledAppName: String?,
+    prefilledPackageName: String?,
+    prefilledType: String?,
+    onCheckDuplicate: (String) -> Unit,
+    onValidatePackageName: (String) -> Unit,
+    onSearchSolutions: (String) -> Unit,
+    onClearSolutionSearchResults: () -> Unit,
+    onAddAlternative: (String) -> Unit,
+    onAddTarget: (String) -> Unit,
+    onRemoveAlternative: (String) -> Unit,
+    onSearchFossApps: (String) -> Unit,
+    onSelectFossApp: (Alternative) -> Unit,
+    onClearLinkedApp: () -> Unit,
+    onValidateRepoUrl: (String) -> Unit,
+    onSubmit: (SubmissionType, String, String, String, String, String, String, String) -> Unit
+) {
     val isPrefilled = prefilledAppName != null && prefilledPackageName != null
     val defaultType = when {
         prefilledType == "foss" -> SubmissionType.NEW_ALTERNATIVE
@@ -90,12 +150,6 @@ fun SubmitScreen(
     var fdroidId by remember { mutableStateOf("") }
     var license by remember { mutableStateOf("") }
     var selectedProprietaryPackages by remember { mutableStateOf(emptySet<String>()) }
-
-    LaunchedEffect(submissionId) {
-        if (submissionId != null) {
-            viewModel.loadSubmission(submissionId)
-        }
-    }
 
     LaunchedEffect(uiState.loadedSubmission) {
         uiState.loadedSubmission?.let { sub ->
@@ -114,12 +168,6 @@ fun SubmitScreen(
             repoUrl = sub.submittedApp.repoUrl
             fdroidId = sub.submittedApp.fdroidId
             license = sub.submittedApp.license
-        }
-    }
-
-    LaunchedEffect(prefilledAppName, prefilledPackageName) {
-        if (!prefilledPackageName.isNullOrBlank()) {
-            viewModel.checkDuplicate(prefilledPackageName)
         }
     }
 
@@ -175,10 +223,20 @@ fun SubmitScreen(
                 .verticalScroll(rememberScrollState()),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            Text(
-                text = "What are you submitting?",
-                style = MaterialTheme.typography.titleMedium
-            )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "What are you submitting?",
+                    style = MaterialTheme.typography.titleMedium
+                )
+                val uriHandler = LocalUriHandler.current
+                TextButton(onClick = { uriHandler.openUri("https://github.com/jksalcedo/librefind/wiki/How-to-Contribute") }) {
+                    Text("Contribution Guide", style = MaterialTheme.typography.labelMedium)
+                }
+            }
 
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 FilterChip(
@@ -190,6 +248,11 @@ fun SubmitScreen(
                     selected = type == SubmissionType.NEW_PROPRIETARY,
                     onClick = { type = SubmissionType.NEW_PROPRIETARY },
                     label = { Text("Proprietary App") }
+                )
+                FilterChip(
+                    selected = type == SubmissionType.LINKING,
+                    onClick = { type = SubmissionType.LINKING },
+                    label = { Text("Link App") }
                 )
             }
 
@@ -204,66 +267,599 @@ fun SubmitScreen(
                 )
             }
 
-            FieldWithHelp(
-                helpTitle = SubmitFieldHelp.appName.title,
-                helpText = SubmitFieldHelp.appName.description,
-                tipText = SubmitFieldHelp.appName.tip
-            ) {
-                OutlinedTextField(
-                    value = appName,
-                    onValueChange = { appName = it },
-                    label = { Text("App Name *") },
-                    singleLine = true,
-                    modifier = Modifier.fillMaxWidth(),
-                    readOnly = uiState.linkedSolution != null
-                )
-            }
+            if (type != SubmissionType.LINKING) {
 
-            FieldWithHelp(
-                helpTitle = SubmitFieldHelp.packageName.title,
-                helpText = SubmitFieldHelp.packageName.description,
-                tipText = SubmitFieldHelp.packageName.tip
-            ) {
-                OutlinedTextField(
-                    value = packageName,
-                    onValueChange = {
-                        packageName = it
-                        viewModel.checkDuplicate(it)
-                        viewModel.validatePackageName(it)
-                    },
-                    label = { Text("Package Name *") },
-                    placeholder = { Text("com.example.app") },
-                    singleLine = true,
-                    isError = uiState.packageNameError != null,
-                    supportingText = {
-                        uiState.packageNameError?.let { error ->
-                            Text(error, color = MaterialTheme.colorScheme.error)
+                FieldWithHelp(
+                    helpTitle = SubmitFieldHelp.appName.title,
+                    helpText = SubmitFieldHelp.appName.description,
+                    tipText = SubmitFieldHelp.appName.tip
+                ) {
+                    OutlinedTextField(
+                        value = appName,
+                        onValueChange = { appName = it },
+                        label = { Text("App Name *") },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth(),
+                        readOnly = uiState.linkedSolution != null
+                    )
+                }
+
+                FieldWithHelp(
+                    helpTitle = SubmitFieldHelp.packageName.title,
+                    helpText = SubmitFieldHelp.packageName.description,
+                    tipText = SubmitFieldHelp.packageName.tip
+                ) {
+                    OutlinedTextField(
+                        value = packageName,
+                        onValueChange = {
+                            packageName = it
+                            onCheckDuplicate(it)
+                            onValidatePackageName(it)
+                        },
+                        label = { Text("Package Name *") },
+                        placeholder = { Text("com.example.app") },
+                        singleLine = true,
+                        isError = uiState.packageNameError != null,
+                        supportingText = {
+                            uiState.packageNameError?.let { error ->
+                                Text(error, color = MaterialTheme.colorScheme.error)
+                            }
+                        },
+                        modifier = Modifier.fillMaxWidth(),
+                        readOnly = uiState.linkedSolution != null
+                    )
+                }
+
+                FieldWithHelp(
+                    helpTitle = SubmitFieldHelp.description.title,
+                    helpText = SubmitFieldHelp.description.description
+                ) {
+                    OutlinedTextField(
+                        value = description,
+                        onValueChange = { description = it },
+                        label = {
+                            Text(
+                                if (type == SubmissionType.NEW_ALTERNATIVE) "Description *"
+                                else "Description"
+                            )
+                        },
+                        minLines = 3,
+                        maxLines = 5,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
+
+                if (type == SubmissionType.NEW_PROPRIETARY) {
+                    HorizontalDivider()
+
+                    Text(
+                        text = "Add Alternatives (optional)",
+                        style = MaterialTheme.typography.titleMedium
+                    )
+
+                    var alternativeSearchQuery by remember { mutableStateOf("") }
+
+                    OutlinedTextField(
+                        value = alternativeSearchQuery,
+                        onValueChange = {
+                            alternativeSearchQuery = it
+                            onSearchSolutions(it)
+                        },
+                        label = { Text("Search for alternatives") },
+                        placeholder = { Text("Search by app name or package...") },
+                        leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
+                        trailingIcon = {
+                            if (alternativeSearchQuery.isNotEmpty()) {
+                                IconButton(onClick = {
+                                    alternativeSearchQuery = ""
+                                    onClearSolutionSearchResults()
+                                }) {
+                                    Icon(Icons.Default.Close, contentDescription = "Clear")
+                                }
+                            }
+                        },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+
+                    if (uiState.solutionSearchResults.isNotEmpty()) {
+                        Surface(
+                            modifier = Modifier.fillMaxWidth(),
+                            tonalElevation = 2.dp,
+                            shape = MaterialTheme.shapes.small
+                        ) {
+                            Column {
+                                uiState.solutionSearchResults.take(5).forEach { solution ->
+                                    val isSelected =
+                                        uiState.selectedAlternatives.contains(solution.packageName)
+
+                                    Row(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .clickable {
+                                                if (isSelected) {
+                                                    onRemoveAlternative(solution.packageName)
+                                                } else {
+                                                    onAddAlternative(solution.packageName)
+                                                }
+                                            }
+                                            .padding(12.dp),
+                                        horizontalArrangement = Arrangement.SpaceBetween,
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Column(modifier = Modifier.weight(1f)) {
+                                            Text(
+                                                text = solution.name,
+                                                style = MaterialTheme.typography.bodyLarge
+                                            )
+                                            Text(
+                                                text = solution.packageName,
+                                                style = MaterialTheme.typography.bodySmall,
+                                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                                            )
+                                        }
+                                        Checkbox(
+                                            checked = isSelected,
+                                            onCheckedChange = null
+                                        )
+                                    }
+                                    if (solution != uiState.solutionSearchResults.last()) {
+                                        HorizontalDivider(modifier = Modifier.alpha(0.5f))
+                                    }
+                                }
+                            }
                         }
-                    },
-                    modifier = Modifier.fillMaxWidth(),
-                    readOnly = uiState.linkedSolution != null
-                )
-            }
+                        Spacer(modifier = Modifier.height(8.dp))
+                    }
 
-            FieldWithHelp(
-                helpTitle = SubmitFieldHelp.description.title,
-                helpText = SubmitFieldHelp.description.description
-            ) {
-                OutlinedTextField(
-                    value = description,
-                    onValueChange = { description = it },
-                    label = { Text("Description *") },
-                    minLines = 3,
-                    maxLines = 5,
-                    modifier = Modifier.fillMaxWidth()
-                )
-            }
+                    if (uiState.selectedAlternatives.isNotEmpty()) {
+                        Text(
+                            text = "Selected Alternatives:",
+                            style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                        FlowRow(
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            uiState.selectedAlternatives.forEach { packageName ->
+                                val solution =
+                                    uiState.solutionSearchResults.find { it.packageName == packageName }
+                                InputChip(
+                                    selected = true,
+                                    onClick = { onRemoveAlternative(packageName) },
+                                    label = { Text(solution?.name ?: packageName) },
+                                    trailingIcon = {
+                                        Icon(
+                                            Icons.Default.Close,
+                                            contentDescription = "Remove",
+                                            modifier = Modifier.size(InputChipDefaults.AvatarSize)
+                                        )
+                                    }
+                                )
+                            }
+                        }
+                    }
+                }
 
-            if (type == SubmissionType.NEW_PROPRIETARY) {
-                HorizontalDivider()
+                if (type == SubmissionType.NEW_ALTERNATIVE) {
+                    HorizontalDivider()
+
+                    Text(
+                        text = "Alternative Details",
+                        style = MaterialTheme.typography.titleMedium
+                    )
+
+                    // FOSS Search Section
+                    if (uiState.linkedSolution == null) {
+                        var fossSearchQuery by remember { mutableStateOf("") }
+
+                        OutlinedTextField(
+                            value = fossSearchQuery,
+                            onValueChange = {
+                                fossSearchQuery = it
+                                onSearchFossApps(it)
+                            },
+                            label = { Text("Search specific FOSS app (optional)") },
+                            placeholder = { Text("Search existing database...") },
+                            leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
+                            trailingIcon = {
+                                if (fossSearchQuery.isNotEmpty()) {
+                                    IconButton(onClick = {
+                                        fossSearchQuery = ""
+                                        onSearchFossApps("")
+                                    }) {
+                                        Icon(Icons.Default.Close, contentDescription = "Clear")
+                                    }
+                                }
+                            },
+                            singleLine = true,
+                            modifier = Modifier.fillMaxWidth()
+                        )
+
+                        if (uiState.fossSearchResults.isNotEmpty()) {
+                            Surface(
+                                modifier = Modifier.fillMaxWidth(),
+                                tonalElevation = 2.dp,
+                                shape = MaterialTheme.shapes.small
+                            ) {
+                                Column {
+                                    uiState.fossSearchResults.forEach { app ->
+                                        Row(
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .clickable {
+                                                    onSelectFossApp(app)
+                                                    // Auto-fill fields
+                                                    appName = app.name
+                                                    packageName = app.packageName
+                                                    description = app.description
+                                                    repoUrl = app.repoUrl
+                                                    fdroidId = app.fdroidId
+                                                    license = app.license
+                                                }
+                                                .padding(12.dp),
+                                            verticalAlignment = Alignment.CenterVertically
+                                        ) {
+                                            Column(modifier = Modifier.weight(1f)) {
+                                                Text(
+                                                    text = app.name,
+                                                    style = MaterialTheme.typography.bodyLarge
+                                                )
+                                                Text(
+                                                    text = app.packageName,
+                                                    style = MaterialTheme.typography.bodySmall,
+                                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                                )
+                                            }
+                                            Icon(
+                                                Icons.Default.Link,
+                                                contentDescription = "Link",
+                                                tint = MaterialTheme.colorScheme.primary
+                                            )
+                                        }
+                                        if (app != uiState.fossSearchResults.last()) {
+                                            HorizontalDivider(modifier = Modifier.alpha(0.5f))
+                                        }
+                                    }
+                                }
+                            }
+                            Spacer(modifier = Modifier.height(8.dp))
+                        }
+                    } else {
+                        // Linked App Display
+                        Surface(
+                            color = MaterialTheme.colorScheme.primaryContainer,
+                            shape = MaterialTheme.shapes.medium,
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Row(
+                                modifier = Modifier
+                                    .padding(12.dp)
+                                    .fillMaxWidth(),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.SpaceBetween
+                            ) {
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Text(
+                                        text = "Linked to Existing App",
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = MaterialTheme.colorScheme.onPrimaryContainer
+                                    )
+                                    Text(
+                                        text = uiState.linkedSolution.name,
+                                        style = MaterialTheme.typography.titleSmall,
+                                        color = MaterialTheme.colorScheme.onPrimaryContainer
+                                    )
+                                    Text(
+                                        text = uiState.linkedSolution.packageName,
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onPrimaryContainer.copy(
+                                            alpha = 0.8f
+                                        )
+                                    )
+                                }
+                                IconButton(onClick = {
+                                    onClearLinkedApp()
+                                }) {
+                                    Icon(
+                                        Icons.Default.LinkOff,
+                                        contentDescription = "Unlink",
+                                        tint = MaterialTheme.colorScheme.onPrimaryContainer
+                                    )
+                                }
+                            }
+                        }
+                        Spacer(modifier = Modifier.height(8.dp))
+                    }
+
+
+                    Text(
+                        text = "License and Repository URL are required for FOSS alternatives",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+
+                    var showDialog by remember { mutableStateOf(false) }
+
+                    FieldWithHelp(
+                        helpTitle = SubmitFieldHelp.targetProprietaryApps.title,
+                        helpText = SubmitFieldHelp.targetProprietaryApps.description,
+                        tipText = SubmitFieldHelp.targetProprietaryApps.tip
+                    ) {
+                        Box(modifier = Modifier.fillMaxWidth()) {
+                            OutlinedTextField(
+                                value = if (selectedProprietaryPackages.isEmpty()) "" else "${selectedProprietaryPackages.size} selected",
+                                onValueChange = {},
+                                readOnly = true,
+                                label = { Text("Target Proprietary Apps") },
+                                placeholder = { Text("Search to add...") },
+                                trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = showDialog) },
+                                modifier = Modifier.fillMaxWidth()
+                            )
+                            Box(
+                                modifier = Modifier
+                                    .matchParentSize()
+                                    .clickable { showDialog = true }
+                            )
+                        }
+                    }
+
+                    if (selectedProprietaryPackages.isNotEmpty()) {
+                        FlowRow(
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            selectedProprietaryPackages.forEach { selectedPkg ->
+                                InputChip(
+                                    selected = true,
+                                    onClick = {
+                                        // Remove from set on click
+                                        selectedProprietaryPackages =
+                                            selectedProprietaryPackages - selectedPkg
+                                    },
+                                    label = { Text(selectedPkg) },
+                                    trailingIcon = {
+                                        Icon(
+                                            Icons.Default.Close,
+                                            contentDescription = "Remove",
+                                            modifier = Modifier.size(InputChipDefaults.AvatarSize)
+                                        )
+                                    }
+                                )
+                            }
+                        }
+                    }
+
+                    if (showDialog) {
+                        MultiSelectDialog(
+                            allPackages = uiState.proprietaryTargets,
+                            unknownApps = uiState.unknownApps,
+                            initialSelection = selectedProprietaryPackages,
+                            onDismiss = { showDialog = false },
+                            onConfirm = { newSelection ->
+                                selectedProprietaryPackages = newSelection
+                                showDialog = false
+                            },
+                            onSuggestAsTarget = { packageName, label ->
+                                showDialog = false
+                                onNavigateToTargetSubmission(label, packageName)
+                            }
+                        )
+                    }
+
+                    FieldWithHelp(
+                        helpTitle = SubmitFieldHelp.repoUrl.title,
+                        helpText = SubmitFieldHelp.repoUrl.description,
+                        tipText = SubmitFieldHelp.repoUrl.tip
+                    ) {
+                        OutlinedTextField(
+                            value = repoUrl,
+                            onValueChange = {
+                                repoUrl = it
+                                onValidateRepoUrl(it)
+                            },
+                            label = { Text("Repository URL *") },
+                            placeholder = { Text("https://github.com/...") },
+                            singleLine = true,
+                            isError = uiState.repoUrlError != null,
+                            supportingText = {
+                                uiState.repoUrlError?.let { error ->
+                                    Text(error, color = MaterialTheme.colorScheme.error)
+                                }
+                            },
+                            modifier = Modifier.fillMaxWidth(),
+                            readOnly = uiState.linkedSolution != null
+                        )
+                    }
+
+                    FieldWithHelp(
+                        helpTitle = SubmitFieldHelp.fdroidId.title,
+                        helpText = SubmitFieldHelp.fdroidId.description,
+                        tipText = SubmitFieldHelp.fdroidId.tip
+                    ) {
+                        OutlinedTextField(
+                            value = fdroidId,
+                            onValueChange = { fdroidId = it },
+                            label = { Text("F-Droid ID") },
+                            singleLine = true,
+                            modifier = Modifier.fillMaxWidth(),
+                            readOnly = uiState.linkedSolution != null
+                        )
+                    }
+
+                    var showLicenseDropdown by remember { mutableStateOf(false) }
+                    val commonLicenses = listOf(
+                        "MIT",
+                        "Apache-2.0",
+                        "GPL-3.0",
+                        "GPL-2.0",
+                        "LGPL-3.0",
+                        "LGPL-2.1",
+                        "BSD-3-Clause",
+                        "BSD-2-Clause",
+                        "MPL-2.0",
+                        "AGPL-3.0",
+                        "ISC",
+                        "Unlicense",
+                        "EPL-2.0",
+                        "CC0-1.0",
+                        "CC-BY-4.0",
+                        "CC-BY-SA-4.0",
+                        "WTFPL",
+                        "Unknown",
+                        "Other"
+                    )
+
+                    val isCustomLicense = license.isNotBlank() && license !in commonLicenses
+                    var showCustomLicenseField by remember(license) { mutableStateOf(isCustomLicense || license == "Other") }
+
+                    FieldWithHelp(
+                        helpTitle = SubmitFieldHelp.license.title,
+                        helpText = SubmitFieldHelp.license.description,
+                        tipText = SubmitFieldHelp.license.tip
+                    ) {
+                        Box(modifier = Modifier.fillMaxWidth()) {
+                            OutlinedTextField(
+                                value = if (isCustomLicense) "Other" else license,
+                                onValueChange = {},
+                                readOnly = true,
+                                label = { Text("License *") },
+                                placeholder = { Text("Select a license") },
+                                trailingIcon = {
+                                    if (uiState.linkedSolution == null)
+                                        ExposedDropdownMenuDefaults.TrailingIcon(expanded = showLicenseDropdown)
+                                },
+                                modifier = Modifier.fillMaxWidth()
+                            )
+                            if (uiState.linkedSolution == null) {
+                                Box(
+                                    modifier = Modifier
+                                        .matchParentSize()
+                                        .clickable { showLicenseDropdown = true }
+                                )
+                            }
+                        }
+                    }
+
+                    if (showCustomLicenseField || license == "Other") {
+                        Spacer(modifier = Modifier.height(8.dp))
+                        OutlinedTextField(
+                            value = if (license == "Other" || (license in commonLicenses && license != "Other")) "" else license,
+                            onValueChange = { license = it },
+                            label = { Text("Custom License Name *") },
+                            placeholder = { Text("e.g. My Custom License") },
+                            singleLine = true,
+                            modifier = Modifier.fillMaxWidth(),
+                            readOnly = uiState.linkedSolution != null
+                        )
+                    }
+
+                    if (showLicenseDropdown) {
+                        AlertDialog(
+                            onDismissRequest = { showLicenseDropdown = false },
+                            title = { Text("Select License") },
+                            text = {
+                                LazyColumn {
+                                    items(commonLicenses) { licenseName ->
+                                        Row(
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .clickable {
+                                                    license = if (licenseName == "Other") {
+                                                        "Other"
+                                                    } else {
+                                                        licenseName
+                                                    }
+                                                    showLicenseDropdown = false
+                                                }
+                                                .padding(vertical = 12.dp, horizontal = 16.dp),
+                                            verticalAlignment = Alignment.CenterVertically
+                                        ) {
+                                            Text(
+                                                text = licenseName,
+                                                style = MaterialTheme.typography.bodyLarge
+                                            )
+                                        }
+                                        if (licenseName != commonLicenses.last()) {
+                                            HorizontalDivider(modifier = Modifier.alpha(0.5f))
+                                        }
+                                    }
+                                }
+                            },
+                            confirmButton = {
+                                TextButton(onClick = { showLicenseDropdown = false }) {
+                                    Text("Cancel")
+                                }
+                            }
+                        )
+                    }
+                }
+            } else {
+                // LINKING
+                Text(
+                    text = "Link Existing Solutions",
+                    style = MaterialTheme.typography.titleMedium
+                )
 
                 Text(
-                    text = "Add Alternatives (optional)",
+                    text = "Link an existing FOSS app to an existing proprietary app in our database.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                // Target App Selection
+                var showTargetDialog by remember { mutableStateOf(false) }
+
+                FieldWithHelp(
+                    helpTitle = "Target Proprietary App",
+                    helpText = "The proprietary app you want to link solutions to."
+                ) {
+                    Box(modifier = Modifier.fillMaxWidth()) {
+                        OutlinedTextField(
+                            value = uiState.linkTargetPackage ?: "",
+                            onValueChange = {},
+                            readOnly = true,
+                            label = { Text("Target Proprietary App") },
+                            placeholder = { Text("Select a target app...") },
+                            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = showTargetDialog) },
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                        Box(
+                            modifier = Modifier
+                                .matchParentSize()
+                                .clickable { showTargetDialog = true }
+                        )
+                    }
+                }
+
+                if (showTargetDialog) {
+                    MultiSelectDialog(
+                        allPackages = uiState.proprietaryTargets, // Reuse existing list for now
+                        unknownApps = uiState.unknownApps,
+                        initialSelection = uiState.linkTargetPackage?.let { setOf(it) } ?: emptySet(),
+                        onDismiss = { showTargetDialog = false },
+                        onConfirm = { newSelection ->
+                            // MultiSelectDialog returns a Set, but we only want one for target
+                            newSelection.firstOrNull()?.let {
+                                onAddTarget(it)
+                            }
+                            showTargetDialog = false
+                        },
+                        onSuggestAsTarget = { packageName, label ->
+                            showTargetDialog = false
+                            onNavigateToTargetSubmission(label, packageName)
+                        }
+                    )
+                }
+
+                HorizontalDivider()
+
+                // Solutions Selection
+                Text(
+                    text = "Select Solutions to Link",
                     style = MaterialTheme.typography.titleMedium
                 )
 
@@ -273,16 +869,16 @@ fun SubmitScreen(
                     value = alternativeSearchQuery,
                     onValueChange = {
                         alternativeSearchQuery = it
-                        viewModel.searchSolutions(it)
+                        onSearchSolutions(it)
                     },
-                    label = { Text("Search for alternatives") },
+                    label = { Text("Search for solutions") },
                     placeholder = { Text("Search by app name or package...") },
                     leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
                     trailingIcon = {
                         if (alternativeSearchQuery.isNotEmpty()) {
                             IconButton(onClick = {
                                 alternativeSearchQuery = ""
-                                viewModel.clearSolutionSearchResults()
+                                onClearSolutionSearchResults()
                             }) {
                                 Icon(Icons.Default.Close, contentDescription = "Clear")
                             }
@@ -308,9 +904,9 @@ fun SubmitScreen(
                                         .fillMaxWidth()
                                         .clickable {
                                             if (isSelected) {
-                                                viewModel.removeAlternative(solution.packageName)
+                                                onRemoveAlternative(solution.packageName)
                                             } else {
-                                                viewModel.addAlternative(solution.packageName)
+                                                onAddAlternative(solution.packageName)
                                             }
                                         }
                                         .padding(12.dp),
@@ -344,7 +940,7 @@ fun SubmitScreen(
 
                 if (uiState.selectedAlternatives.isNotEmpty()) {
                     Text(
-                        text = "Selected Alternatives:",
+                        text = "Selected Solutions:",
                         style = MaterialTheme.typography.labelMedium,
                         color = MaterialTheme.colorScheme.primary
                     )
@@ -353,11 +949,12 @@ fun SubmitScreen(
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         uiState.selectedAlternatives.forEach { packageName ->
+                            // Look up name in search results or just show package name
                             val solution =
                                 uiState.solutionSearchResults.find { it.packageName == packageName }
                             InputChip(
                                 selected = true,
-                                onClick = { viewModel.removeAlternative(packageName) },
+                                onClick = { onRemoveAlternative(packageName) },
                                 label = { Text(solution?.name ?: packageName) },
                                 trailingIcon = {
                                     Icon(
@@ -369,358 +966,6 @@ fun SubmitScreen(
                             )
                         }
                     }
-                }
-            }
-
-            if (type == SubmissionType.NEW_ALTERNATIVE) {
-                HorizontalDivider()
-
-                Text(
-                    text = "Alternative Details",
-                    style = MaterialTheme.typography.titleMedium
-                )
-
-                // FOSS Search Section
-                if (uiState.linkedSolution == null) {
-                    var fossSearchQuery by remember { mutableStateOf("") }
-
-                    OutlinedTextField(
-                        value = fossSearchQuery,
-                        onValueChange = {
-                            fossSearchQuery = it
-                            viewModel.searchFossApps(it)
-                        },
-                        label = { Text("Search specific FOSS app (optional)") },
-                        placeholder = { Text("Search existing database...") },
-                        leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
-                        trailingIcon = {
-                            if (fossSearchQuery.isNotEmpty()) {
-                                IconButton(onClick = {
-                                    fossSearchQuery = ""
-                                    viewModel.searchFossApps("")
-                                }) {
-                                    Icon(Icons.Default.Close, contentDescription = "Clear")
-                                }
-                            }
-                        },
-                        singleLine = true,
-                        modifier = Modifier.fillMaxWidth()
-                    )
-
-                    if (uiState.fossSearchResults.isNotEmpty()) {
-                        Surface(
-                            modifier = Modifier.fillMaxWidth(),
-                            tonalElevation = 2.dp,
-                            shape = MaterialTheme.shapes.small
-                        ) {
-                            Column {
-                                uiState.fossSearchResults.forEach { app ->
-                                    Row(
-                                        modifier = Modifier
-                                            .fillMaxWidth()
-                                            .clickable {
-                                                viewModel.selectFossApp(app)
-                                                // Auto-fill fields
-                                                appName = app.name
-                                                packageName = app.packageName
-                                                description = app.description
-                                                repoUrl = app.repoUrl
-                                                fdroidId = app.fdroidId
-                                                license = app.license
-                                            }
-                                            .padding(12.dp),
-                                        verticalAlignment = Alignment.CenterVertically
-                                    ) {
-                                        Column(modifier = Modifier.weight(1f)) {
-                                            Text(
-                                                text = app.name,
-                                                style = MaterialTheme.typography.bodyLarge
-                                            )
-                                            Text(
-                                                text = app.packageName,
-                                                style = MaterialTheme.typography.bodySmall,
-                                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                                            )
-                                        }
-                                        Icon(
-                                            Icons.Default.Link,
-                                            contentDescription = "Link",
-                                            tint = MaterialTheme.colorScheme.primary
-                                        )
-                                    }
-                                    if (app != uiState.fossSearchResults.last()) {
-                                        HorizontalDivider(modifier = Modifier.alpha(0.5f))
-                                    }
-                                }
-                            }
-                        }
-                        Spacer(modifier = Modifier.height(8.dp))
-                    }
-                } else {
-                    // Linked App Display
-                    Surface(
-                        color = MaterialTheme.colorScheme.primaryContainer,
-                        shape = MaterialTheme.shapes.medium,
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Row(
-                            modifier = Modifier
-                                .padding(12.dp)
-                                .fillMaxWidth(),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.SpaceBetween
-                        ) {
-                            Column(modifier = Modifier.weight(1f)) {
-                                Text(
-                                    text = "Linked to Existing App",
-                                    style = MaterialTheme.typography.labelSmall,
-                                    color = MaterialTheme.colorScheme.onPrimaryContainer
-                                )
-                                Text(
-                                    text = uiState.linkedSolution?.name ?: "Unknown",
-                                    style = MaterialTheme.typography.titleSmall,
-                                    color = MaterialTheme.colorScheme.onPrimaryContainer
-                                )
-                                Text(
-                                    text = uiState.linkedSolution?.packageName ?: "",
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.8f)
-                                )
-                            }
-                            IconButton(onClick = {
-                                viewModel.clearLinkedApp()
-                            }) {
-                                Icon(
-                                    Icons.Default.LinkOff,
-                                    contentDescription = "Unlink",
-                                    tint = MaterialTheme.colorScheme.onPrimaryContainer
-                                )
-                            }
-                        }
-                    }
-                    Spacer(modifier = Modifier.height(8.dp))
-                }
-
-
-                Text(
-                    text = "License and Repository URL are required for FOSS alternatives",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-
-                var showDialog by remember { mutableStateOf(false) }
-
-                FieldWithHelp(
-                    helpTitle = SubmitFieldHelp.targetProprietaryApps.title,
-                    helpText = SubmitFieldHelp.targetProprietaryApps.description,
-                    tipText = SubmitFieldHelp.targetProprietaryApps.tip
-                ) {
-                    Box(modifier = Modifier.fillMaxWidth()) {
-                        OutlinedTextField(
-                            value = if (selectedProprietaryPackages.isEmpty()) "" else "${selectedProprietaryPackages.size} selected",
-                            onValueChange = {},
-                            readOnly = true,
-                            label = { Text("Target Proprietary Apps") },
-                            placeholder = { Text("Search to add...") },
-                            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = showDialog) },
-                            modifier = Modifier.fillMaxWidth()
-                        )
-                        Box(
-                            modifier = Modifier
-                                .matchParentSize()
-                                .clickable { showDialog = true }
-                        )
-                    }
-                }
-
-                if (selectedProprietaryPackages.isNotEmpty()) {
-                    FlowRow(
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        selectedProprietaryPackages.forEach { selectedPkg ->
-                            InputChip(
-                                selected = true,
-                                onClick = {
-                                    // Remove from set on click
-                                    selectedProprietaryPackages =
-                                        selectedProprietaryPackages - selectedPkg
-                                },
-                                label = { Text(selectedPkg) },
-                                trailingIcon = {
-                                    Icon(
-                                        Icons.Default.Close,
-                                        contentDescription = "Remove",
-                                        modifier = Modifier.size(InputChipDefaults.AvatarSize)
-                                    )
-                                }
-                            )
-                        }
-                    }
-                }
-
-                if (showDialog) {
-                    MultiSelectDialog(
-                        allPackages = uiState.proprietaryTargets,
-                        unknownApps = uiState.unknownApps,
-                        initialSelection = selectedProprietaryPackages,
-                        onDismiss = { showDialog = false },
-                        onConfirm = { newSelection ->
-                            selectedProprietaryPackages = newSelection
-                            showDialog = false
-                        },
-                        onSuggestAsTarget = { packageName, label ->
-                            showDialog = false
-                            onNavigateToTargetSubmission(label, packageName)
-                        }
-                    )
-                }
-
-                FieldWithHelp(
-                    helpTitle = SubmitFieldHelp.repoUrl.title,
-                    helpText = SubmitFieldHelp.repoUrl.description,
-                    tipText = SubmitFieldHelp.repoUrl.tip
-                ) {
-                    OutlinedTextField(
-                        value = repoUrl,
-                        onValueChange = {
-                            repoUrl = it
-                            viewModel.validateRepoUrl(it)
-                        },
-                        label = { Text("Repository URL *") },
-                        placeholder = { Text("https://github.com/...") },
-                        singleLine = true,
-                        isError = uiState.repoUrlError != null,
-                        supportingText = {
-                            uiState.repoUrlError?.let { error ->
-                                Text(error, color = MaterialTheme.colorScheme.error)
-                            }
-                        },
-                        modifier = Modifier.fillMaxWidth(),
-                        readOnly = uiState.linkedSolution != null
-                    )
-                }
-
-                FieldWithHelp(
-                    helpTitle = SubmitFieldHelp.fdroidId.title,
-                    helpText = SubmitFieldHelp.fdroidId.description,
-                    tipText = SubmitFieldHelp.fdroidId.tip
-                ) {
-                    OutlinedTextField(
-                        value = fdroidId,
-                        onValueChange = { fdroidId = it },
-                        label = { Text("F-Droid ID") },
-                        singleLine = true,
-                        modifier = Modifier.fillMaxWidth(),
-                        readOnly = uiState.linkedSolution != null
-                    )
-                }
-
-                var showLicenseDropdown by remember { mutableStateOf(false) }
-                val commonLicenses = listOf(
-                    "MIT",
-                    "Apache-2.0",
-                    "GPL-3.0",
-                    "GPL-2.0",
-                    "LGPL-3.0",
-                    "LGPL-2.1",
-                    "BSD-3-Clause",
-                    "BSD-2-Clause",
-                    "MPL-2.0",
-                    "AGPL-3.0",
-                    "ISC",
-                    "Unlicense",
-                    "EPL-2.0",
-                    "CC0-1.0",
-                    "CC-BY-4.0",
-                    "CC-BY-SA-4.0",
-                    "WTFPL",
-                    "Unknown",
-                    "Other"
-                )
-
-                val isCustomLicense = license.isNotBlank() && license !in commonLicenses
-                var showCustomLicenseField by remember(license) { mutableStateOf(isCustomLicense || license == "Other") }
-
-                FieldWithHelp(
-                    helpTitle = SubmitFieldHelp.license.title,
-                    helpText = SubmitFieldHelp.license.description,
-                    tipText = SubmitFieldHelp.license.tip
-                ) {
-                    Box(modifier = Modifier.fillMaxWidth()) {
-                        OutlinedTextField(
-                            value = if (isCustomLicense) "Other" else license,
-                            onValueChange = {},
-                            readOnly = true,
-                            label = { Text("License *") },
-                            placeholder = { Text("Select a license") },
-                            trailingIcon = {
-                                if (uiState.linkedSolution == null)
-                                    ExposedDropdownMenuDefaults.TrailingIcon(expanded = showLicenseDropdown)
-                            },
-                            modifier = Modifier.fillMaxWidth()
-                        )
-                        if (uiState.linkedSolution == null) {
-                            Box(
-                                modifier = Modifier
-                                    .matchParentSize()
-                                    .clickable { showLicenseDropdown = true }
-                            )
-                        }
-                    }
-                }
-
-                if (showCustomLicenseField || license == "Other") {
-                    Spacer(modifier = Modifier.height(8.dp))
-                    OutlinedTextField(
-                        value = if (license == "Other" || (license in commonLicenses && license != "Other")) "" else license,
-                        onValueChange = { license = it },
-                        label = { Text("Custom License Name *") },
-                        placeholder = { Text("e.g. My Custom License") },
-                        singleLine = true,
-                        modifier = Modifier.fillMaxWidth(),
-                        readOnly = uiState.linkedSolution != null
-                    )
-                }
-
-                if (showLicenseDropdown) {
-                    AlertDialog(
-                        onDismissRequest = { showLicenseDropdown = false },
-                        title = { Text("Select License") },
-                        text = {
-                            LazyColumn {
-                                items(commonLicenses) { licenseName ->
-                                    Row(
-                                        modifier = Modifier
-                                            .fillMaxWidth()
-                                            .clickable {
-                                                license = if (licenseName == "Other") {
-                                                    "Other"
-                                                } else {
-                                                    licenseName
-                                                }
-                                                showLicenseDropdown = false
-                                            }
-                                            .padding(vertical = 12.dp, horizontal = 16.dp),
-                                        verticalAlignment = Alignment.CenterVertically
-                                    ) {
-                                        Text(
-                                            text = licenseName,
-                                            style = MaterialTheme.typography.bodyLarge
-                                        )
-                                    }
-                                    if (licenseName != commonLicenses.last()) {
-                                        HorizontalDivider(modifier = Modifier.alpha(0.5f))
-                                    }
-                                }
-                            }
-                        },
-                        confirmButton = {
-                            TextButton(onClick = { showLicenseDropdown = false }) {
-                                Text("Cancel")
-                            }
-                        }
-                    )
                 }
             }
 
@@ -736,25 +981,32 @@ fun SubmitScreen(
 
             Button(
                 onClick = {
-                    viewModel.submit(
-                        type = type,
-                        appName = appName,
-                        packageName = packageName,
-                        description = description,
-                        repoUrl = repoUrl,
-                        fdroidId = fdroidId,
-                        license = license,
-                        proprietaryPackages = selectedProprietaryPackages.joinToString(", ")
+                    onSubmit(
+                        type,
+                        appName,
+                        packageName,
+                        description,
+                        repoUrl,
+                        fdroidId,
+                        license,
+                        selectedProprietaryPackages.joinToString(", ")
                     )
                 },
-                enabled = appName.isNotBlank() &&
-                        packageName.isNotBlank() &&
-                        description.isNotBlank() &&
-                        uiState.duplicateWarning == null &&
-                        !uiState.isLoading &&
-                        uiState.packageNameError == null &&
-                        uiState.repoUrlError == null &&
-                        (type == SubmissionType.NEW_PROPRIETARY || (repoUrl.isNotBlank() && license.isNotBlank())),
+                enabled = !uiState.isLoading && (
+                    if (type == SubmissionType.LINKING) {
+                        uiState.linkTargetPackage != null && uiState.selectedAlternatives.isNotEmpty()
+                    } else {
+                        appName.isNotBlank() &&
+                                packageName.isNotBlank() &&
+                                uiState.duplicateWarning == null &&
+                                uiState.packageNameError == null &&
+                                if (type == SubmissionType.NEW_ALTERNATIVE) {
+                                    description.isNotBlank() && repoUrl.isNotBlank() && license.isNotBlank() && uiState.repoUrlError == null
+                                } else {
+                                    true
+                                }
+                    }
+                ),
                 modifier = Modifier.fillMaxWidth()
             ) {
                 if (uiState.isLoading) {
@@ -944,4 +1196,30 @@ fun MultiSelectDialog(
             }
         }
     }
+}
+
+@Preview
+@Composable
+fun SubmitScreenPreview() {
+    SubmitContent(
+        uiState = SubmitUiState(),
+        onBackClick = {},
+        onSuccess = {},
+        onNavigateToTargetSubmission = { _, _ -> },
+        prefilledAppName = null,
+        prefilledPackageName = null,
+        prefilledType = null,
+        onCheckDuplicate = {},
+        onValidatePackageName = {},
+        onSearchSolutions = {},
+        onClearSolutionSearchResults = {},
+        onAddAlternative = {},
+        onRemoveAlternative = {},
+        onSearchFossApps = {},
+        onSelectFossApp = {},
+        onClearLinkedApp = {},
+        onValidateRepoUrl = {},
+        onSubmit = { _, _, _, _, _, _, _, _ -> },
+        onAddTarget = {}
+    )
 }
