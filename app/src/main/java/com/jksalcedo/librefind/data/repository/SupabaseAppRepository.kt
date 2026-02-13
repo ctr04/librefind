@@ -4,6 +4,7 @@ import android.util.Log
 import com.jksalcedo.librefind.data.remote.model.AppScanStatsDto
 import com.jksalcedo.librefind.data.remote.model.ProfileDto
 import com.jksalcedo.librefind.data.remote.model.SolutionDto
+import com.jksalcedo.librefind.data.remote.model.UserLinkingSubmissionsDto
 import com.jksalcedo.librefind.data.remote.model.UserReportDto
 import com.jksalcedo.librefind.data.remote.model.UserSubmissionDto
 import com.jksalcedo.librefind.data.remote.model.UserVoteDto
@@ -282,10 +283,6 @@ class SupabaseAppRepository(
         userId: String,
         alternatives: List<String>
     ): Result<Unit> = runCatching {
-        Log.d(
-            "SupabaseAppRepo",
-            "Submitting alternative: $appName ($alternativePackage) for $proprietaryPackage by $userId"
-        )
         try {
             val submission = UserSubmissionDto(
                 appName = appName,
@@ -306,6 +303,25 @@ class SupabaseAppRepository(
         }
     }
 
+    override suspend fun submitLinkedAlternatives(
+        proprietaryPackage: String,
+        alternatives: List<String>,
+        submitterId: String
+    ): Result<Unit> = runCatching {
+        try {
+            val submission = UserLinkingSubmissionsDto(
+                proprietaryPackage = proprietaryPackage,
+                alternatives = alternatives,
+                submitterId = submitterId,
+                status = "PENDING",
+                rejectionReason = null
+            )
+            supabase.postgrest.from("user_linking_submissions").insert(submission)
+        } catch (e: Exception) {
+            throw e
+        }
+    }
+
     override suspend fun updateSubmission(
         id: String,
         proprietaryPackage: String,
@@ -317,7 +333,6 @@ class SupabaseAppRepository(
         license: String,
         alternatives: List<String>
     ): Result<Unit> = runCatching {
-        Log.d("SupabaseAppRepo", "Updating submission $id")
         try {
             val updateData = UserSubmissionDto(
                 appName = appName,
@@ -344,10 +359,6 @@ class SupabaseAppRepository(
             val updated = result.decodeList<UserSubmissionDto>()
 
             if (updated.isEmpty()) {
-                Log.w(
-                    "SupabaseAppRepo",
-                    "Update returned 0 rows. RLS might be blocking update of REJECTED submission. Falling back to INSERT."
-                )
                 // Fallback: Insert as new submission
                 supabase.postgrest.from("user_submissions").insert(updateData)
                 Log.d("SupabaseAppRepo", "Fallback insertion successful (0 rows updated)")
@@ -769,7 +780,7 @@ class SupabaseAppRepository(
         appVersion: String?
     ): Result<Unit> = runCatching {
         val userId = supabase.auth.currentUserOrNull()?.id
-        
+
         val stats = AppScanStatsDto(
             deviceId = deviceId,
             userId = userId,
@@ -779,7 +790,7 @@ class SupabaseAppRepository(
             totalApps = fossCount + proprietaryCount + unknownCount,
             appVersion = appVersion
         )
-        
+
         supabase.postgrest.from("app_scan_stats").upsert(stats) {
             onConflict = "device_id"
             defaultToNull = false

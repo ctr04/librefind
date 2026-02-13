@@ -82,3 +82,14 @@ data class AppScanStatsDto(
     @SerialName("total_apps") val totalApps: Int,
     @SerialName("app_version") val appVersion: String? = null
 )
+
+@Serializable
+data class UserLinkingSubmissionsDto(
+    val id: String? = null,
+    @SerialName("proprietary_package") val proprietaryPackage: String,
+    val alternatives: List<String>,
+    @SerialName("submitter_id") val submitterId: String,
+    val status: String = "PENDING",
+    @SerialName("rejection_reason") val rejectionReason: String? = null,
+    @SerialName("created_at") val createdAt: String? = null
+)
