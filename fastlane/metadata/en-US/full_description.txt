@@ -1,4 +1,4 @@
-LibreFind is a free and lightweight Android app that scans your device locally and queries our database to identify proprietary software and recommend Free and Open Source Software (FOSS) alternatives.
+LibreFind is a free and lightweight Android app that scans your installed packages locally and queries our database to identify proprietary software and find FOSS alternatives.
 
 <b>Core Features</b>
 
