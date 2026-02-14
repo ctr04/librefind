@@ -39,16 +39,14 @@
 
 ## What is LibreFind?
 
-LibreFind is a free and lightweight Android app that scans your device, identifies proprietary
-software, and recommends
-Free and Open Source Software (FOSS) alternatives. It uses **Supabase** data as its
-knowledge
-base for proprietary app detection and FOSS alternative recommendations.
+LibreFind is a free and lightweight Android app that scans your installed packages locally and queries our database to identify proprietary software and find FOSS alternatives.
 
-### Core Mission
+### Core Features
 
-Help users replace proprietary apps with FOSS alternatives.
-
+- Scan installed apps to detect proprietary software
+- Get FOSS alternative recommendations
+- View sovereignty scores showing FOSS vs proprietary ratio
+- Community-driven database
 
 ## Screenshots
 
@@ -57,23 +55,12 @@ Help users replace proprietary apps with FOSS alternatives.
 | ![Dashboard](metadata/en-US/images/phoneScreenshots/dashboard.jpg) | ![Alternatives](metadata/en-US/images/phoneScreenshots/alternative_list.jpg) | ![Submission](metadata/en-US/images/phoneScreenshots/submission.jpg) | ![Profile](metadata/en-US/images/phoneScreenshots/profile.jpg) |
 | Scan your apps and view sovereignty score                          | Browse FOSS alternatives                                                     | Contribute new alternatives                                          | Track your submissions                                         |
 
-### Community
+### Community Contributions
 
-- Users can propose new FOSS alternatives
-- Users can submit PROS/CONS per alternatives
-- Admin/Reviewers verify submissions
-- Community voting system
-
-## Help Build the LibreFind
-
-The applications database grows entirely through **your contributions**.
-
-### Why contribute?
-
-- **Replace your daily apps** with better FOSS options
-- **Your votes shape rankings** for everyone
-- **Submit missing alternatives** others need too
-- **Every submission makes LibreFind more useful**
+- Propose new FOSS alternatives for review
+- Submit pros and cons for existing alternatives
+- Vote on app recommendations
+- Help build a comprehensive alternative database
 
   
 ---
