@@ -1,26 +1,32 @@
 name: LibreFind
 package_name: com.jksalcedo.librefind
 description: |
-  LibreFind is a free and lightweight Android app that scans your device, identifies proprietary software, and recommends Free and Open Source Software (FOSS) alternatives.
+  LibreFind is a free and lightweight Android app that scans your device locally and queries our database to identify proprietary software and recommend Free and Open Source Software (FOSS) alternatives.
 
   Core Features
+
   • Scan installed apps to detect proprietary software
   • Get FOSS alternative recommendations
   • View sovereignty scores showing FOSS vs proprietary ratio
   • Community-driven database
 
   Community Contributions
+
   • Propose new FOSS alternatives for review
   • Submit pros and cons for existing alternatives
   • Vote on app recommendations
   • Help build a comprehensive alternative database
 
-  All app scanning happens locally on your device. The app only queries the database for FOSS alternatives when proprietary apps are detected.
+  The app only queries the database for FOSS alternatives when proprietary apps are detected.
 
   LibreFind is fully open source under the MIT License. Contribute at: https://github.com/jksalcedo/librefind
+
 license: MIT
 repository: https://github.com/jksalcedo/librefind
 tags: [utilities, privacy]
 icon: https://raw.githubusercontent.com/jksalcedo/librefind/main/fastlane/metadata/en-US/images/icon.png
 images:
   - https://raw.githubusercontent.com/jksalcedo/librefind/main/fastlane/metadata/en-US/images/phoneScreenshots/dashboard.jpg
+  - https://raw.githubusercontent.com/jksalcedo/librefind/main/fastlane/metadata/en-US/images/phoneScreenshots/alternative_list.jpg
+  - https://raw.githubusercontent.com/jksalcedo/librefind/main/fastlane/metadata/en-US/images/phoneScreenshots/submission.jpg
+  - https://raw.githubusercontent.com/jksalcedo/librefind/main/fastlane/metadata/en-US/images/phoneScreenshots/profile.jpg
