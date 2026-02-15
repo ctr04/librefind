@@ -282,7 +282,8 @@ class SupabaseAppRepository(
         fdroidId: String,
         license: String,
         userId: String,
-        alternatives: List<String>
+        alternatives: List<String>,
+        submissionType: SubmissionType
     ): Result<Unit> = runCatching {
         try {
             val submission = UserSubmissionDto(
@@ -294,6 +295,7 @@ class SupabaseAppRepository(
                 fdroidId = fdroidId.ifBlank { null },
                 license = license.ifBlank { null },
                 alternatives = alternatives.ifEmpty { null },
+                submissionType = submissionType.name,
                 submitterId = userId
             )
             supabase.postgrest.from("user_submissions").insert(submission)
@@ -464,6 +466,7 @@ class SupabaseAppRepository(
                             "repo_url",
                             "fdroid_id",
                             "license",
+                            "submission_type",
                             "status",
                             "submitter_id",
                             "rejection_reason",
@@ -495,7 +498,13 @@ class SupabaseAppRepository(
             val standardList = standardDtos.map { dto ->
                 Submission(
                     id = dto.id ?: "",
-                    type = if (!dto.license.isNullOrBlank() || !dto.repoUrl.isNullOrBlank())
+                    type = dto.submissionType?.let {
+                        try {
+                            SubmissionType.valueOf(it)
+                        } catch (_: Exception) {
+                            null
+                        }
+                    } ?: if (!dto.license.isNullOrBlank() || !dto.repoUrl.isNullOrBlank())
                         SubmissionType.NEW_ALTERNATIVE
                     else
                         SubmissionType.NEW_PROPRIETARY,
@@ -733,6 +742,7 @@ class SupabaseAppRepository(
         @SerialName("repo_url") val repoUrl: String? = null,
         @SerialName("fdroid_id") val fdroidId: String? = null,
         val license: String? = null,
+        @SerialName("submission_type") val submissionType: String? = null,
         val status: String,
         @SerialName("submitter_id") val submitterId: String,
         @SerialName("rejection_reason") val rejectionReason: String? = null,
